@@ -4,3 +4,4 @@ build*
 /**/obj
 components_hidden
 .DS_Store
+.vscode
