@@ -28,6 +28,12 @@ namespace m1
         void OnWindowResize(int width, int height) override;
 
         // TODO(student): Class variables go here
+        glm::vec3 my_color = glm::vec3(0, 0, 0);
+        glm::string my_string = "sphere";
+        glm::vec3 my_position = glm::vec3(0, 0, 0);
 
+        // Bonus
+        glm::vec3 my_sinus = glm::vec3(0, 0, 0);
+        float curr_time = 0;
     };
 }   // namespace m1
