@@ -44,16 +44,19 @@ void Lab3::Init()
     // `corner` and `squareSide`. These two class variables will be used
     // in the `Update()` function. Think about it, why do you need them?
 
+    cx = corner.x + (squareSide + corner.x) / 2;
+    cy = corner.y + (squareSide + corner.y) / 2;
+
     // Initialize tx and ty (the translation steps)
-    translateX = 0;
-    translateY = 0;
+    translateX = 4;
+    translateY = 4;
 
     // Initialize sx and sy (the scale factors)
-    scaleX = 1;
-    scaleY = 1;
+    scaleX = 5;
+    scaleY = 2;
 
     // Initialize angularStep
-    angularStep = 0;
+    angularStep = 45;
 
     Mesh* square1 = object2D::CreateSquare("square1", corner, squareSide, glm::vec3(1, 0, 0), true);
     AddMeshToList(square1);
@@ -63,6 +66,8 @@ void Lab3::Init()
 
     Mesh* square3 = object2D::CreateSquare("square3", corner, squareSide, glm::vec3(0, 0, 1));
     AddMeshToList(square3);
+
+    elapsedTime = 0;
 }
 
 
@@ -91,6 +96,10 @@ void Lab3::Update(float deltaTimeSeconds)
     // transform matrix with the matrices you just implemented.
     // Remember, the last matrix in the chain will take effect first!
 
+    translateX += deltaTimeSeconds * 100;
+    translateY += deltaTimeSeconds * 100;
+    modelMatrix *= transform2D::Translate(translateX, translateY);
+
     RenderMesh2D(meshes["square1"], shaders["VertexColor"], modelMatrix);
 
     modelMatrix = glm::mat3(1);
@@ -98,6 +107,10 @@ void Lab3::Update(float deltaTimeSeconds)
     // TODO(student): Create animations by multiplying the current
     // transform matrix with the matrices you just implemented
     // Remember, the last matrix in the chain will take effect first!
+
+    scaleX += deltaTimeSeconds * 2;
+    scaleY += deltaTimeSeconds / 2;
+    modelMatrix *= transform2D::Scale(scaleX, scaleY);
 
     RenderMesh2D(meshes["square2"], shaders["VertexColor"], modelMatrix);
 
@@ -107,7 +120,45 @@ void Lab3::Update(float deltaTimeSeconds)
     // transform matrix with the matrices you just implemented
     // Remember, the last matrix in the chain will take effect first!
 
+    angularStep += deltaTimeSeconds * 10;
+    modelMatrix *= transform2D::Rotate(angularStep);
+
     RenderMesh2D(meshes["square3"], shaders["VertexColor"], modelMatrix);
+
+
+    // Bonus
+
+    elapsedTime += deltaTimeSeconds;
+
+    float oscX = 100 * glm::sin(elapsedTime * 2);
+
+    modelMatrix = glm::mat3(1);
+    modelMatrix *= transform2D::Translate(300 + oscX, 600);
+    RenderMesh2D(meshes["square1"], shaders["VertexColor"], modelMatrix);
+
+    float radius = 150;
+    float angle = elapsedTime * 2;
+
+    modelMatrix = glm::mat3(1);
+    modelMatrix *= transform2D::Translate(300, 600);
+    modelMatrix *= transform2D::Rotate(angle);
+    modelMatrix *= transform2D::Translate(radius, radius);
+    modelMatrix *= transform2D::Scale(0.5f, 0.5f);
+
+    RenderMesh2D(meshes["square1"], shaders["VertexColor"], modelMatrix);
+
+    float radius2 = 50;
+    float angle2 = elapsedTime * 3;
+
+    modelMatrix = glm::mat3(1);
+    modelMatrix *= transform2D::Translate(300, 600);
+    modelMatrix *= transform2D::Rotate(angle);
+    modelMatrix *= transform2D::Translate(radius, radius);
+    modelMatrix *= transform2D::Rotate(angle);
+    modelMatrix *= transform2D::Translate(radius2, radius2);
+    modelMatrix *= transform2D::Scale(0.25f, 0.25f);
+
+    RenderMesh2D(meshes["square1"], shaders["VertexColor"], modelMatrix);
 }
 
 
