@@ -46,6 +46,9 @@ namespace m1
         float angularStepOX, angularStepOY, angularStepOZ;
         GLenum polygonMode;
         ViewportArea miniViewportArea;
+
+        // Bonus
+        float bx, by, bz, az;
     };
 }   // namespace m1
 
