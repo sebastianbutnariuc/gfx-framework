@@ -1,6 +1,7 @@
 #include "lab_m1/Tema1/Rules.h"
 
 #include <cstdlib>
+#include <vector>
 
 using namespace m1;
 
@@ -38,6 +39,76 @@ void Rules::ResolveTurn(Player &player, Player &enemy) const
 
     player.EndTurn();
     enemy.EndTurn();
+}
+
+
+void Rules::UseLeaderAbility(Player &owner, Player &opponent) const
+{
+    if (owner.leader.used) {
+        return;
+    }
+    owner.leader.used = true;
+
+    switch (owner.leader.ability) {
+    case LeaderAbility::ClearWeather:
+        // Foltest: all weather cards are destroyed
+        for (Player *p : { &owner, &opponent }) {
+            for (Card &c : p->row) {
+                if (c.IsWeather()) {
+                    c.value = 0;
+                }
+            }
+        }
+        break;
+
+    case LeaderAbility::RevealHand:
+        // Emhyr: up to 3 random hidden cards of the opponent's hand are turned face up
+        for (int i = 0; i < 3; i++) {
+            std::vector<Card*> hidden;
+            for (Card &c : opponent.hand) {
+                if (!c.faceUp) {
+                    hidden.push_back(&c);
+                }
+            }
+            if (hidden.empty()) {
+                break;
+            }
+            hidden[rand() % hidden.size()]->faceUp = true;
+        }
+        break;
+
+    case LeaderAbility::DoubleMelee:
+    case LeaderAbility::HornSiege:
+    {
+        // Eredin: your melee cards x2; Radovid: your siege cards x2
+        Lane lane = (owner.leader.ability == LeaderAbility::DoubleMelee) ? Lane::Melee : Lane::Siege;
+        for (Card &c : owner.row) {
+            if (c.placedLane == lane) {
+                c.value *= 2;
+            }
+        }
+        break;
+    }
+
+    case LeaderAbility::DestroyStrongestMelee:
+    {
+        // Francesca: the opponent's strongest melee card is destroyed
+        Card *strongest = nullptr;
+        for (Card &c : opponent.row) {
+            if (c.placedLane == Lane::Melee && (!strongest || c.value > strongest->value)) {
+                strongest = &c;
+            }
+        }
+        if (strongest) {
+            strongest->value = 0;
+        }
+        break;
+    }
+    }
+
+    // Destroyed cards go to the graveyard right away
+    owner.EndTurn();
+    opponent.EndTurn();
 }
 
 

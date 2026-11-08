@@ -243,6 +243,11 @@ void Tema1::Update(float deltaTimeSeconds)
             if (IsRoundOver()) {
                 EndRound();
             } else {
+                // The enemy uses its leader once, at a random moment between turns
+                if (!enemy.leader.used && rand() % 4 == 0) {
+                    Rules(kMaxHP).UseLeaderAbility(enemy, player);
+                    LayoutAll();
+                }
                 phase = Phase::PlayerTurn;
             }
         }
@@ -610,8 +615,15 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
         return;
     }
 
-    // Cards can be picked up only during the player's turn
+    // Cards and the leader can be used only during the player's turn
     if (phase != Phase::PlayerTurn) {
+        return;
+    }
+
+    // Click on your leader: its ability is applied right away (once per game), the turn continues
+    if (Rect(player.leaderPos, glm::vec2(60)).Contains(mouseWorld)) {
+        Rules(kMaxHP).UseLeaderAbility(player, enemy);
+        LayoutAll();
         return;
     }
 

@@ -123,3 +123,14 @@
 - A second click on the selected leader starts the game; the enemy gets a random leader
 - During the game each leader is drawn on its player's half, next to the crystals (gray once its ability is used)
 - `R` goes back to the leader menu
+
+### 15. Leader abilities
+- Click on your leader during your turn: its ability is applied right away, the leader turns gray (once per game); the turn continues
+- The enemy uses its ability once, at a random moment (25% chance after each turn)
+- Abilities are used only between turns (no card of the current turn on the board), so destroyed cards can be cleaned up right away
+- `Rules::UseLeaderAbility`:
+  - Foltest: destroys all weather cards
+  - Emhyr: turns 3 hidden cards of the opponent's hand face up (flip animation)
+  - Eredin: doubles your melee cards
+  - Francesca: destroys the opponent's strongest melee card
+  - Radovid: doubles your siege cards (War Horn on siege)

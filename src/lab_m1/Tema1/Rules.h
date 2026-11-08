@@ -17,6 +17,10 @@ namespace m1
         // Temporary cards lose 1 value after their effect; cards that reach 0 are removed.
         void ResolveTurn(Player &player, Player &enemy) const;
 
+        // Applies the owner's leader ability (once per game) and marks the leader as used.
+        // Called only between turns (no card of the current turn on the board).
+        void UseLeaderAbility(Player &owner, Player &opponent) const;
+
      private:
         void ApplyEffect(Card &card, int index, Player &owner, Player &opponent) const;
 
