@@ -17,12 +17,26 @@ Card Card::Random()
     CardType type = (CardType)(rand() % (int)CardType::Count);
     int value = 1 + rand() % 4;
 
-    // Permanent cards belong to one random lane, temporary ones can go anywhere
+    // Permanent cards belong to one random lane, weather cards to their own lane,
+    // the other temporary cards can go anywhere
     Card card(type, value, Lane::Any);
-    if (!card.IsTemporary()) {
-        card.lane = (Lane)(rand() % kLaneCount);
+    switch (type) {
+    case CardType::FrostWeather: card.lane = Lane::Melee;  break;
+    case CardType::Fog:          card.lane = Lane::Ranged; break;
+    case CardType::Rain:         card.lane = Lane::Siege;  break;
+    default:
+        if (!card.IsTemporary()) {
+            card.lane = (Lane)(rand() % kLaneCount);
+        }
+        break;
     }
     return card;
+}
+
+
+bool Card::IsWeather() const
+{
+    return type == CardType::FrostWeather || type == CardType::Fog || type == CardType::Rain;
 }
 
 
@@ -57,6 +71,8 @@ glm::vec3 Card::GetColor() const
     case CardType::ClearWeather: return glm::vec3(0.90f, 0.75f, 0.20f);
     case CardType::WarHorn:      return glm::vec3(0.95f, 0.50f, 0.15f);
     case CardType::Scorch:       return glm::vec3(0.50f, 0.25f, 0.70f);
+    case CardType::Fog:          return glm::vec3(0.55f, 0.58f, 0.62f);
+    case CardType::Rain:         return glm::vec3(0.20f, 0.55f, 0.58f);
     default:                     return glm::vec3(1, 0, 1);
     }
 }
@@ -80,7 +96,9 @@ std::string Card::GetSymbolMesh() const
     case CardType::Heal:         return "cross";
     case CardType::Shield:       return "circle";
     case CardType::Spy:          return "diamond";
-    case CardType::FrostWeather: return "star";
+    case CardType::FrostWeather: return "star";     // all weather cards: star, different colors
+    case CardType::Fog:          return "star";
+    case CardType::Rain:         return "star";
     case CardType::ClearWeather: return "ring";
     case CardType::WarHorn:      return "triangle";
     case CardType::Scorch:       return "cross";

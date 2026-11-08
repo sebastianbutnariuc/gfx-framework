@@ -9,7 +9,8 @@ void Rules::ResolveTurn(Player &player, Player &enemy) const
 {
     const CardType order[] =
     {
-        CardType::Scorch, CardType::Spy, CardType::ClearWeather, CardType::FrostWeather,
+        CardType::Scorch, CardType::Spy, CardType::ClearWeather,
+        CardType::FrostWeather, CardType::Fog, CardType::Rain,      // weather, together
         CardType::WarHorn, CardType::Shield, CardType::Damage, CardType::Heal
     };
 
@@ -64,10 +65,10 @@ void Rules::ApplyEffect(Card &card, int index, Player &owner, Player &opponent) 
         break;
 
     case CardType::ClearWeather:
-        // Removes all active weather (Frost) from both sides
+        // Removes all active weather (Frost, Fog, Rain) from both sides
         for (Player *p : { &owner, &opponent }) {
             for (Card &c : p->row) {
-                if (c.type == CardType::FrostWeather) {
+                if (c.IsWeather()) {
                     c.value = 0;
                 }
             }
@@ -75,9 +76,13 @@ void Rules::ApplyEffect(Card &card, int index, Player &owner, Player &opponent) 
         break;
 
     case CardType::FrostWeather:
-        // All the opponent's board cards lose 1
+    case CardType::Fog:
+    case CardType::Rain:
+        // The opponent's cards on the weather's lane (Frost: melee, Fog: ranged, Rain: siege) lose 1
         for (Card &c : opponent.row) {
-            c.value--;
+            if (c.placedLane == card.placedLane) {
+                c.value--;
+            }
         }
         break;
 

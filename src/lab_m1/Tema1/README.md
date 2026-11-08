@@ -87,3 +87,10 @@
 - Dropping on a lane the card doesn't belong to sends it back to the hand
 - The enemy puts its card on the card's lane (random lane for `Any` cards)
 - Board cards are arranged on one centered row per lane
+
+### 11. Weather per lane
+- New weather cards: Fog (ranged) and Rain (siege); Frost now affects only melee
+- Weather cards can be placed only on their own lane
+- Effect: the opponent's cards on that lane lose 1 (applied together, in the weather slot of the effect order)
+- Clear Weather removes all three weather types
+- All weather cards use a star symbol, with different colors (Frost white, Fog gray, Rain teal)

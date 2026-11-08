@@ -15,10 +15,12 @@ namespace m1
         Shield,         // blue
         // Temporary
         Spy,            // black
-        FrostWeather,   // white
+        FrostWeather,   // white, melee
         ClearWeather,   // yellow
         WarHorn,        // orange
         Scorch,         // purple
+        Fog,            // gray, ranged
+        Rain,           // teal, siege
         Count
     };
 
@@ -41,6 +43,7 @@ namespace m1
         static Card Random();
 
         bool IsTemporary() const;
+        bool IsWeather() const;
         bool CanGoOn(Lane l) const { return lane == Lane::Any || lane == l; }
 
         // Moves `position` a step closer to `target`; once there, turns the card face up if needed
