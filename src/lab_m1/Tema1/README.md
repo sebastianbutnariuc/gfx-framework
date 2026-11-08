@@ -53,6 +53,21 @@
   - the back is visible in the first half, the front in the second
 - Card details are drawn relative to the card's center, then the card's matrix places them (hierarchical transforms)
 
+### 8. Card effects
+- `Rules` class: after both cards are on the board, the effects of all board cards (new and older) are applied
+- Fixed order by type: Scorch - Spy - Clear Weather - Frost Weather - War Horn - Shield - Damage - Heal (player first, then enemy)
+- Permanent cards:
+  - Damage: opponent loses V life (the shield absorbs damage first)
+  - Heal: +V life, up to the maximum
+  - Shield: +V shield
+- Temporary cards (V decreases by 1 after each effect):
+  - Scorch: cancels the opponent's card from this turn if its value is >= V
+  - Spy: steals a random card from the opponent's hand (it slides to the new hand)
+  - Clear Weather: removes all Frost cards from the board
+  - Frost Weather: all the opponent's board cards lose 1
+  - War Horn: doubles the next card played by the same player
+- Cards that reach value 0 are destroyed; the rows rearrange with animation
+- `Player` handles its own state: `PlayCard`, `TakeDamage`, `Heal`, `EndTurn`
+
 ## To do
-- Card effects, applied in order: Scorch - Spy - Clear Weather - Frost Weather - War Horn - Shield - Damage - Heal
 - End of the game

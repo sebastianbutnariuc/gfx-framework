@@ -2,6 +2,7 @@
 
 #include "lab_m1/Tema1/transform2D.h"
 #include "lab_m1/Tema1/object2D.h"
+#include "lab_m1/Tema1/Rules.h"
 
 using namespace m1;
 
@@ -44,6 +45,8 @@ void Tema1::Init()
     player.deckPos   = glm::vec2(1120, 280);
     player.livesPos  = glm::vec2(20, 170);
 
+    enemy.hiddenHand = true;
+
     mouseWorld = glm::vec2(0);
 
     NewGame();
@@ -57,9 +60,10 @@ void Tema1::NewGame()
         p->deck.clear();
         p->hand.clear();
         p->row.clear();
+        p->EndTurn();
         for (int i = 0; i < kDeckSize; i++) {
             Card card = Card::Random();
-            if (p == &enemy) {
+            if (p->hiddenHand) {
                 card.faceUp = false;    // enemy cards stay hidden until played
                 card.flip = 0;
             }
@@ -80,7 +84,7 @@ void Tema1::DealCard(Player &p)
 {
     // The new card starts on the deck, the layout gives it its slot in the hand -> it slides there
     p.DrawFromDeck();
-    LayoutRow(p.hand, p.handZone.center, false);
+    LayoutAll();
 }
 
 
@@ -91,15 +95,8 @@ void Tema1::EnemyPlayCard()
     }
 
     // Random card from the hand -> enemy board, face down; it flips once it arrives (Card::Animate)
-    int index = rand() % (int)enemy.hand.size();
-    Card card = enemy.hand[index];
-    card.faceUp = true;
-
-    enemy.hand.erase(enemy.hand.begin() + index);
-    enemy.row.push_back(card);
-
-    LayoutRow(enemy.hand, enemy.handZone.center, false);
-    LayoutRow(enemy.row, enemy.boardZone.center, false);
+    enemy.PlayCard(rand() % (int)enemy.hand.size());
+    LayoutAll();
 }
 
 
@@ -142,9 +139,10 @@ void Tema1::Update(float deltaTimeSeconds)
         break;
 
     case Phase::Reveal:
-        // Wait until the enemy card is fully turned face up
-        if (enemy.row.empty() || enemy.row.back().flip >= 1) {
-            // TODO: apply card effects
+        // Wait until the enemy card is fully turned face up, then apply the effects
+        if (enemy.playedIndex == -1 || enemy.row[enemy.playedIndex].flip >= 1) {
+            Rules(kMaxHP).ResolveTurn(player, enemy);
+            LayoutAll();    // cards stolen by Spy / destroyed cards
             phase = Phase::PlayerTurn;
         }
         break;
@@ -175,16 +173,22 @@ glm::vec2 Tema1::ScreenToWorld(int mouseX, int mouseY) const
 }
 
 
-void Tema1::LayoutRow(std::vector<Card> &cards, glm::vec2 center, bool snap)
+void Tema1::LayoutRow(std::vector<Card> &cards, glm::vec2 center)
 {
     float step = kCardWidth + kCardSpacing;
     float firstX = center.x - step * (cards.size() - 1) / 2;
 
     for (size_t i = 0; i < cards.size(); i++) {
         cards[i].target = glm::vec2(firstX + i * step, center.y);
-        if (snap) {
-            cards[i].position = cards[i].target;
-        }
+    }
+}
+
+
+void Tema1::LayoutAll()
+{
+    for (Player *p : { &player, &enemy }) {
+        LayoutRow(p->hand, p->handZone.center);
+        LayoutRow(p->row, p->boardZone.center);
     }
 }
 
@@ -276,7 +280,9 @@ void Tema1::DrawCardFront(const Card &card, const glm::mat3 &model)
     }
 
     // Value V: one small square per unit, centered along the bottom edge
-    const float pip = 8, step = 11;
+    // (squares get smaller for large values, e.g. after War Horn, to stay inside the card)
+    float step = glm::min(11.0f, 60.0f / card.value);
+    float pip = 0.75f * step;
     float firstX = -step * (card.value - 1) / 2;
     for (int i = 0; i < card.value; i++) {
         glm::vec2 p = glm::vec2(firstX + i * step, -38);
@@ -384,18 +390,14 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods)
     }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
 
-    // Valid drop: move the card from the hand to the board row
+    // Valid drop: move the card from the hand to the board row; the enemy answers after a short pause
     if (player.boardZone.Contains(mouseWorld)) {
-        player.row.push_back(player.hand[draggedIndex]);
-        player.hand.erase(player.hand.begin() + draggedIndex);
-        LayoutRow(player.row, player.boardZone.center, false);
-
-        // Enemy answers after a short pause
+        player.PlayCard(draggedIndex);
         phase = Phase::EnemyTurn;
         timer = kEnemyDelay;
     }
 
-    // Recompute hand slots: the remaining cards (or the rejected one) slide into place
-    LayoutRow(player.hand, player.handZone.center, false);
+    // Recompute slots: the remaining cards (or the rejected one) slide into place
     draggedIndex = -1;
+    LayoutAll();
 }

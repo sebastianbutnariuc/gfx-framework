@@ -40,8 +40,9 @@ namespace m1
         // Window pixels (origin top-left) -> scene coordinates (origin bottom-left)
         glm::vec2 ScreenToWorld(int mouseX, int mouseY) const;
 
-        // Puts the cards on one centered row; snap = jump there, otherwise only set the target
-        void LayoutRow(std::vector<Card> &cards, glm::vec2 center, bool snap);
+        // Sets the cards' targets on one centered row (they slide there through the animation)
+        void LayoutRow(std::vector<Card> &cards, glm::vec2 center);
+        void LayoutAll();   // hands and board rows of both players
 
         // Drawing
         // `parent` = transform applied on top (e.g. the card's own matrix, for the card's details)

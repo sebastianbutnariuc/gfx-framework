@@ -12,25 +12,22 @@ namespace m1
     class Player
     {
      public:
-        Player() : hp(0), shield(0) {}
+        Player();
 
         // Moves the top card of the deck into the hand; it starts at the deck position
-        void DrawFromDeck()
-        {
-            if (deck.empty()) {
-                return;
-            }
-            Card card = deck.back();
-            deck.pop_back();
-            card.position = deckPos;
-            hand.push_back(card);
-        }
+        void DrawFromDeck();
 
-        void Animate(float deltaTime)
-        {
-            for (Card &c : hand) c.Animate(deltaTime);
-            for (Card &c : row)  c.Animate(deltaTime);
-        }
+        // Moves a card from the hand to the board row and remembers it as this turn's card
+        void PlayCard(int handIndex);
+
+        // Damage is absorbed by the shield first
+        void TakeDamage(int amount);
+        void Heal(int amount, int maxHP);
+
+        // Removes the board cards whose value reached 0 and forgets this turn's card
+        void EndTurn();
+
+        void Animate(float deltaTime);
 
      public:
         std::vector<Card> deck;
@@ -39,6 +36,11 @@ namespace m1
 
         int hp;
         int shield;
+        bool hiddenHand;            // the enemy's hand is shown face down
+
+        // Card played in the current turn (index in `row`, -1 if none) and whether Scorch cancelled it
+        int playedIndex;
+        bool playedCancelled;
 
         // Where this side is drawn
         Rect handZone;
