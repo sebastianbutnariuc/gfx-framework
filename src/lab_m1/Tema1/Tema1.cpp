@@ -38,15 +38,21 @@ void Tema1::Init()
     AddMeshToList(tema1::object2D::CreateCross("cross"));
 
     // Layout: enemy on top, player on the bottom
-    enemy.handZone  = Rect(glm::vec2(640, 645), glm::vec2(900, 120));
-    enemy.boardZone = Rect(glm::vec2(600, 450), glm::vec2(800, 170));
-    enemy.deckPos   = glm::vec2(1120, 470);
-    enemy.livesPos  = glm::vec2(20, 565);
+    enemy.handZone = Rect(glm::vec2(640, 655), glm::vec2(900, 110));
+    enemy.deckPos  = glm::vec2(1120, 480);
+    enemy.livesPos = glm::vec2(20, 590);
 
-    player.handZone  = Rect(glm::vec2(640, 75),  glm::vec2(900, 120));
-    player.boardZone = Rect(glm::vec2(600, 280), glm::vec2(800, 170));
-    player.deckPos   = glm::vec2(1120, 280);
-    player.livesPos  = glm::vec2(20, 170);
+    player.handZone = Rect(glm::vec2(640, 65), glm::vec2(900, 110));
+    player.deckPos  = glm::vec2(1120, 240);
+    player.livesPos = glm::vec2(20, 140);
+
+    // Lanes: melee next to the middle line, then ranged, then siege (mirrored for the enemy)
+    for (int i = 0; i < kLaneCount; i++) {
+        float offset = kLaneHeight * (i + 0.5f);
+        glm::vec2 size = glm::vec2(kBoardWidth, kLaneHeight);
+        player.lanes[i] = Rect(glm::vec2(kBoardCenterX, kMiddleY - offset), size);
+        enemy.lanes[i]  = Rect(glm::vec2(kBoardCenterX, kMiddleY + offset), size);
+    }
 
     enemy.hiddenHand = true;
 
@@ -97,8 +103,14 @@ void Tema1::EnemyPlayCard()
         return;
     }
 
-    // Random card from the hand -> enemy board, face down; it flips once it arrives (Card::Animate)
-    enemy.PlayCard(rand() % (int)enemy.hand.size());
+    // Random card from the hand -> its lane (random lane if it fits anywhere), face down;
+    // it flips once it arrives (Card::Animate)
+    int index = rand() % (int)enemy.hand.size();
+    Lane lane = enemy.hand[index].lane;
+    if (lane == Lane::Any) {
+        lane = (Lane)(rand() % kLaneCount);
+    }
+    enemy.PlayCard(index, lane);
     LayoutAll();
 }
 
@@ -202,13 +214,12 @@ glm::vec2 Tema1::ScreenToWorld(int mouseX, int mouseY) const
 }
 
 
-void Tema1::LayoutRow(std::vector<Card> &cards, glm::vec2 center)
+void Tema1::LayoutRow(const std::vector<Card*> &cards, glm::vec2 center, float step)
 {
-    float step = kCardWidth + kCardSpacing;
     float firstX = center.x - step * (cards.size() - 1) / 2;
 
     for (size_t i = 0; i < cards.size(); i++) {
-        cards[i].target = glm::vec2(firstX + i * step, center.y);
+        cards[i]->target = glm::vec2(firstX + i * step, center.y);
     }
 }
 
@@ -216,8 +227,23 @@ void Tema1::LayoutRow(std::vector<Card> &cards, glm::vec2 center)
 void Tema1::LayoutAll()
 {
     for (Player *p : { &player, &enemy }) {
-        LayoutRow(p->hand, p->handZone.center);
-        LayoutRow(p->row, p->boardZone.center);
+        // Hand: one row
+        std::vector<Card*> hand;
+        for (Card &c : p->hand) {
+            hand.push_back(&c);
+        }
+        LayoutRow(hand, p->handZone.center, kCardWidth + kCardSpacing);
+
+        // Board: one row per lane, with the smaller board cards
+        for (int lane = 0; lane < kLaneCount; lane++) {
+            std::vector<Card*> cards;
+            for (Card &c : p->row) {
+                if ((int)c.placedLane == lane) {
+                    cards.push_back(&c);
+                }
+            }
+            LayoutRow(cards, p->lanes[lane].center, kCardWidth * kBoardScale + 8);
+        }
     }
 }
 
@@ -258,14 +284,22 @@ void Tema1::DrawOutline(const Rect &rect, glm::vec3 color, float thickness)
 void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor)
 {
     DrawRect(p.handZone, glm::vec3(0.09f, 0.11f, 0.17f));
-    DrawRect(p.boardZone, boardColor);
-    DrawOutline(p.boardZone, boardColor * 2.0f, 2);
+
+    // Lanes; while dragging, the ones where the card can be dropped are highlighted
+    for (int i = 0; i < kLaneCount; i++) {
+        bool highlight = (&p == &player && draggedIndex != -1 && player.hand[draggedIndex].CanGoOn((Lane)i));
+        DrawRect(p.lanes[i], highlight ? boardColor * 2.0f : boardColor);
+        DrawOutline(p.lanes[i], boardColor * 2.5f, 2);
+
+        glm::vec2 markerPos = p.lanes[i].center - glm::vec2(kBoardWidth / 2 - 22, 0);
+        DrawLaneMarker((Lane)i, markerPos, boardColor * 3.0f);
+    }
 
     DrawDeck(p.deckPos, (int)p.deck.size());
     DrawLives(p.livesPos, p.hp, p.shield);
 
     for (const Card &c : p.row) {
-        DrawCard(c);
+        DrawCard(c, kBoardScale);
     }
     for (size_t i = 0; i < p.hand.size(); i++) {
         if (&p == &player && (int)i == draggedIndex) {
@@ -276,12 +310,13 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor)
 }
 
 
-void Tema1::DrawCard(const Card &card)
+void Tema1::DrawCard(const Card &card, float scale)
 {
     // Flip = rotation around the vertical axis, seen from the front: the card gets narrower on X
     // (|cos| goes 1 -> 0 -> 1); the back is visible in the first half, the front in the second
     float angle = card.flip * glm::pi<float>();
-    glm::mat3 model = t2d::Translate(card.position.x, card.position.y) * t2d::Scale(glm::abs(glm::cos(angle)), 1);
+    glm::mat3 model = t2d::Translate(card.position.x, card.position.y)
+                    * t2d::Scale(scale * glm::abs(glm::cos(angle)), scale);
 
     if (card.flip > 0.5f) {
         DrawCardFront(card, model);
@@ -303,9 +338,14 @@ void Tema1::DrawCardFront(const Card &card, const glm::mat3 &model)
     // Type symbol
     DrawMesh(card.GetSymbolMesh(), glm::vec2(0, 8), glm::vec2(35), card.GetSymbolColor(), card.GetSymbolAngle(), model);
 
-    // Temporary cards: small diamond in the corner
+    // Temporary cards: small diamond in the top-left corner
     if (card.IsTemporary()) {
         DrawMesh("diamond", glm::vec2(-22, 38), glm::vec2(13), card.GetSymbolColor(), 0, model);
+    }
+
+    // Lane the card belongs to: dots in the top-right corner
+    if (card.lane != Lane::Any) {
+        DrawLaneMarker(card.lane, glm::vec2(18, 38), card.GetSymbolColor(), model);
     }
 
     // Value V: one small square per unit, centered along the bottom edge
@@ -317,6 +357,18 @@ void Tema1::DrawCardFront(const Card &card, const glm::mat3 &model)
         glm::vec2 p = glm::vec2(firstX + i * step, -38);
         DrawMesh("square", p, glm::vec2(pip + 2), glm::vec3(0.1f), 0, model);
         DrawMesh("square", p, glm::vec2(pip), glm::vec3(0.9f, 0.2f, 0.2f), 0, model);
+    }
+}
+
+
+void Tema1::DrawLaneMarker(Lane lane, glm::vec2 center, glm::vec3 color, const glm::mat3 &parent)
+{
+    // Melee = 1 dot, Ranged = 2, Siege = 3, centered on `center`
+    const float step = 8;
+    int count = (int)lane + 1;
+    float firstX = center.x - step * (count - 1) / 2;
+    for (int i = 0; i < count; i++) {
+        DrawMesh("circle", glm::vec2(firstX + i * step, center.y), glm::vec2(6), color, 0, parent);
     }
 }
 
@@ -384,7 +436,7 @@ void Tema1::DrawGameOver()
         angle = glm::quarter_pi<float>();
     }
 
-    Rect banner(glm::vec2(600, 365), glm::vec2(500, 140));
+    Rect banner(glm::vec2(kBoardCenterX, kMiddleY), glm::vec2(500, 140));
     DrawRect(banner, color);
     DrawOutline(banner, glm::vec3(0.95f), 4);
     DrawMesh(symbol, banner.center, glm::vec2(90), glm::vec3(0.95f), angle);
@@ -442,9 +494,10 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods)
     }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
 
-    // Valid drop: move the card from the hand to the board row; the enemy answers after a short pause
-    if (player.boardZone.Contains(mouseWorld)) {
-        player.PlayCard(draggedIndex);
+    // Valid drop = on a lane where the card is allowed; the enemy answers after a short pause
+    int lane = player.LaneAt(mouseWorld);
+    if (lane != -1 && player.hand[draggedIndex].CanGoOn((Lane)lane)) {
+        player.PlayCard(draggedIndex, (Lane)lane);
         phase = Phase::EnemyTurn;
         timer = kEnemyDelay;
     }

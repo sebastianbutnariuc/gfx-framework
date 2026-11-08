@@ -75,3 +75,15 @@
 - A player with no cards left skips their turn; board effects keep applying
 - Result banner over the board: green + star = win, red + X = loss, gray + ring = draw (also printed in the console)
 - `R` starts a new game
+
+## Advanced requirements
+
+### 10. Lanes
+- Each board half has 3 lanes: melee (next to the middle line), ranged, siege
+- Board made taller; cards on the board are drawn at 0.65 scale (extra `Scale` in the card's matrix)
+- Each card has a `lane` attribute: permanent cards get a random lane, temporary cards fit any lane (`Lane::Any`)
+- Lane marker: 1 / 2 / 3 dots (melee / ranged / siege), drawn in the card's top-right corner and at the start of each lane
+- While dragging, the lanes where the card can go are highlighted
+- Dropping on a lane the card doesn't belong to sends it back to the hand
+- The enemy puts its card on the card's lane (random lane for `Any` cards)
+- Board cards are arranged on one centered row per lane

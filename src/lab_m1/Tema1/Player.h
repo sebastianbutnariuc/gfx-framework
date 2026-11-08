@@ -17,8 +17,11 @@ namespace m1
         // Moves the top card of the deck into the hand; it starts at the deck position
         void DrawFromDeck();
 
-        // Moves a card from the hand to the board row and remembers it as this turn's card
-        void PlayCard(int handIndex);
+        // Moves a card from the hand to a board lane and remembers it as this turn's card
+        void PlayCard(int handIndex, Lane lane);
+
+        // Lane under the given point, or -1 if none
+        int LaneAt(glm::vec2 p) const;
 
         // Damage is absorbed by the shield first
         void TakeDamage(int amount);
@@ -32,7 +35,7 @@ namespace m1
      public:
         std::vector<Card> deck;
         std::vector<Card> hand;
-        std::vector<Card> row;      // cards placed on this player's half of the board
+        std::vector<Card> row;      // cards placed on this player's half of the board (all lanes)
 
         int hp;
         int shield;
@@ -44,7 +47,7 @@ namespace m1
 
         // Where this side is drawn
         Rect handZone;
-        Rect boardZone;
+        Rect lanes[kLaneCount];     // indexed by Lane (Melee, Ranged, Siege)
         glm::vec2 deckPos;
         glm::vec2 livesPos;
     };

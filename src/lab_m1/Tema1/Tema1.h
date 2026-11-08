@@ -43,8 +43,8 @@ namespace m1
         glm::vec2 ScreenToWorld(int mouseX, int mouseY) const;
 
         // Sets the cards' targets on one centered row (they slide there through the animation)
-        void LayoutRow(std::vector<Card> &cards, glm::vec2 center);
-        void LayoutAll();   // hands and board rows of both players
+        void LayoutRow(const std::vector<Card*> &cards, glm::vec2 center, float step);
+        void LayoutAll();   // hands and board lanes of both players
 
         // Drawing
         // `parent` = transform applied on top (e.g. the card's own matrix, for the card's details)
@@ -54,7 +54,8 @@ namespace m1
         void DrawOutline(const Rect &rect, glm::vec3 color, float thickness);
 
         void DrawPlayer(const Player &p, glm::vec3 boardColor);
-        void DrawCard(const Card &card);                                // front or back, with flip
+        void DrawCard(const Card &card, float scale = 1);               // front or back, with flip
+        void DrawLaneMarker(Lane lane, glm::vec2 center, glm::vec3 color, const glm::mat3 &parent = glm::mat3(1));
         void DrawCardFront(const Card &card, const glm::mat3 &model);   // model = card's transform
         void DrawCardBack(const glm::mat3 &model);
         void DrawDeck(glm::vec2 center, int cardsLeft);
@@ -69,6 +70,13 @@ namespace m1
         static constexpr float kCardWidth = 70;
         static constexpr float kCardHeight = 100;
         static constexpr float kCardSpacing = 15;
+        static constexpr float kBoardScale = 0.65f;     // cards on the board are drawn smaller
+
+        // Board: centered on the middle line, each half has 3 lanes
+        static constexpr float kBoardCenterX = 630;
+        static constexpr float kBoardWidth = 760;
+        static constexpr float kMiddleY = 360;
+        static constexpr float kLaneHeight = 76;
 
         static constexpr int kMaxHP = 15;
         static constexpr int kDeckSize = 20;

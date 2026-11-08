@@ -22,14 +22,26 @@ namespace m1
         Count
     };
 
+    // Board lanes, from the center of the table outwards. Any = can be placed on every lane.
+    enum class Lane
+    {
+        Melee,
+        Ranged,
+        Siege,
+        Any
+    };
+
+    const int kLaneCount = 3;
+
     class Card
     {
      public:
-        Card(CardType type, int value);
+        Card(CardType type, int value, Lane lane);
 
         static Card Random();
 
         bool IsTemporary() const;
+        bool CanGoOn(Lane l) const { return lane == Lane::Any || lane == l; }
 
         // Moves `position` a step closer to `target`; once there, turns the card face up if needed
         void Animate(float deltaTime);
@@ -43,6 +55,8 @@ namespace m1
      public:
         CardType type;
         int value;
+        Lane lane;              // where it can be placed
+        Lane placedLane;        // where it was placed (when on the board)
 
         glm::vec2 position;     // where it is drawn now
         glm::vec2 target;       // where it should go (layout / animations)

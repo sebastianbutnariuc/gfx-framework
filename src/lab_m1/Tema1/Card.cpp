@@ -5,8 +5,9 @@
 using namespace m1;
 
 
-Card::Card(CardType type, int value)
-    : type(type), value(value), position(0), target(0), faceUp(true), flip(1)
+Card::Card(CardType type, int value, Lane lane)
+    : type(type), value(value), lane(lane), placedLane(lane),
+      position(0), target(0), faceUp(true), flip(1)
 {
 }
 
@@ -15,7 +16,13 @@ Card Card::Random()
 {
     CardType type = (CardType)(rand() % (int)CardType::Count);
     int value = 1 + rand() % 4;
-    return Card(type, value);
+
+    // Permanent cards belong to one random lane, temporary ones can go anywhere
+    Card card(type, value, Lane::Any);
+    if (!card.IsTemporary()) {
+        card.lane = (Lane)(rand() % kLaneCount);
+    }
+    return card;
 }
 
 

@@ -21,14 +21,26 @@ void Player::DrawFromDeck()
 }
 
 
-void Player::PlayCard(int handIndex)
+void Player::PlayCard(int handIndex, Lane lane)
 {
     Card card = hand[handIndex];
     card.faceUp = true;     // enemy cards flip once they reach the board
+    card.placedLane = lane;
 
     hand.erase(hand.begin() + handIndex);
     row.push_back(card);
     playedIndex = (int)row.size() - 1;
+}
+
+
+int Player::LaneAt(glm::vec2 p) const
+{
+    for (int i = 0; i < kLaneCount; i++) {
+        if (lanes[i].Contains(p)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 
