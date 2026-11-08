@@ -28,8 +28,8 @@ namespace m1
 
         void Animate(float deltaTime)
         {
-            for (Card &c : hand) c.MoveTowardsTarget(deltaTime);
-            for (Card &c : row)  c.MoveTowardsTarget(deltaTime);
+            for (Card &c : hand) c.Animate(deltaTime);
+            for (Card &c : row)  c.Animate(deltaTime);
         }
 
      public:

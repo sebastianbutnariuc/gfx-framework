@@ -31,8 +31,8 @@ namespace m1
 
         bool IsTemporary() const;
 
-        // Translation animation: moves `position` a step closer to `target`
-        void MoveTowardsTarget(float deltaTime);
+        // Moves `position` a step closer to `target`; once there, turns the card face up if needed
+        void Animate(float deltaTime);
 
         // Look of the card, depends only on its type
         glm::vec3 GetColor() const;
@@ -46,5 +46,8 @@ namespace m1
 
         glm::vec2 position;     // where it is drawn now
         glm::vec2 target;       // where it should go (layout / animations)
+
+        bool faceUp;            // should be shown face up
+        float flip;             // flip animation: 0 = back visible, 1 = front visible
     };
 }   // namespace m1

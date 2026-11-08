@@ -6,7 +6,7 @@ using namespace m1;
 
 
 Card::Card(CardType type, int value)
-    : type(type), value(value), position(0), target(0)
+    : type(type), value(value), position(0), target(0), faceUp(true), flip(1)
 {
 }
 
@@ -25,11 +25,17 @@ bool Card::IsTemporary() const
 }
 
 
-void Card::MoveTowardsTarget(float deltaTime)
+void Card::Animate(float deltaTime)
 {
     // Covers a fixed fraction of the remaining distance each frame: fast at first, slows down near the target
-    const float speed = 10;
-    position += (target - position) * glm::min(1.0f, speed * deltaTime);
+    const float moveSpeed = 10;
+    position += (target - position) * glm::min(1.0f, moveSpeed * deltaTime);
+
+    // Flip only after arriving, so a placed card is first seen face down, then turned
+    const float flipSpeed = 2.5f;
+    if (faceUp && flip < 1 && glm::distance(position, target) < 1) {
+        flip = glm::min(1.0f, flip + flipSpeed * deltaTime);
+    }
 }
 
 

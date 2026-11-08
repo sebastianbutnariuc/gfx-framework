@@ -58,15 +58,21 @@ void Tema1::NewGame()
         p->hand.clear();
         p->row.clear();
         for (int i = 0; i < kDeckSize; i++) {
-            p->deck.push_back(Card::Random());
+            Card card = Card::Random();
+            if (p == &enemy) {
+                card.faceUp = false;    // enemy cards stay hidden until played
+                card.flip = 0;
+            }
+            p->deck.push_back(card);
         }
         p->hp = kMaxHP;
         p->shield = 0;
     }
 
     draggedIndex = -1;
+    phase = Phase::Dealing;
+    timer = 0;
     cardsToDeal = 2 * kHandSize;
-    dealTimer = 0;
 }
 
 
@@ -75,6 +81,25 @@ void Tema1::DealCard(Player &p)
     // The new card starts on the deck, the layout gives it its slot in the hand -> it slides there
     p.DrawFromDeck();
     LayoutRow(p.hand, p.handZone.center, false);
+}
+
+
+void Tema1::EnemyPlayCard()
+{
+    if (enemy.hand.empty()) {
+        return;
+    }
+
+    // Random card from the hand -> enemy board, face down; it flips once it arrives (Card::Animate)
+    int index = rand() % (int)enemy.hand.size();
+    Card card = enemy.hand[index];
+    card.faceUp = true;
+
+    enemy.hand.erase(enemy.hand.begin() + index);
+    enemy.row.push_back(card);
+
+    LayoutRow(enemy.hand, enemy.handZone.center, false);
+    LayoutRow(enemy.row, enemy.boardZone.center, false);
 }
 
 
@@ -94,25 +119,49 @@ void Tema1::FrameStart()
 
 void Tema1::Update(float deltaTimeSeconds)
 {
-    // Dealing at the start: one card every kDealInterval seconds, alternating player / enemy
-    if (cardsToDeal > 0) {
-        dealTimer -= deltaTimeSeconds;
-        if (dealTimer <= 0) {
+    timer -= deltaTimeSeconds;
+
+    switch (phase) {
+    case Phase::Dealing:
+        // One card every kDealInterval seconds, alternating player / enemy
+        if (timer <= 0) {
             DealCard(cardsToDeal % 2 == 0 ? player : enemy);
             cardsToDeal--;
-            dealTimer = kDealInterval;
+            timer = kDealInterval;
         }
+        if (cardsToDeal == 0) {
+            phase = Phase::PlayerTurn;
+        }
+        break;
+
+    case Phase::EnemyTurn:
+        if (timer <= 0) {
+            EnemyPlayCard();
+            phase = Phase::Reveal;
+        }
+        break;
+
+    case Phase::Reveal:
+        // Wait until the enemy card is fully turned face up
+        if (enemy.row.empty() || enemy.row.back().flip >= 1) {
+            // TODO: apply card effects
+            phase = Phase::PlayerTurn;
+        }
+        break;
+
+    case Phase::PlayerTurn:
+        break;
     }
 
     player.Animate(deltaTimeSeconds);
     enemy.Animate(deltaTimeSeconds);
 
-    DrawPlayer(enemy, glm::vec3(0.25f, 0.10f, 0.14f), false);
-    DrawPlayer(player, glm::vec3(0.10f, 0.17f, 0.30f), true);
+    DrawPlayer(enemy, glm::vec3(0.25f, 0.10f, 0.14f));
+    DrawPlayer(player, glm::vec3(0.10f, 0.17f, 0.30f));
 
     // The dragged card is drawn last, on top of everything
     if (draggedIndex != -1) {
-        DrawCardFront(player.hand[draggedIndex], player.hand[draggedIndex].position);
+        DrawCard(player.hand[draggedIndex]);
     }
 }
 
@@ -145,9 +194,10 @@ void Tema1::LayoutRow(std::vector<Card> &cards, glm::vec2 center, bool snap)
  */
 
 
-void Tema1::DrawMesh(const std::string &mesh, glm::vec2 center, glm::vec2 size, glm::vec3 color, float angle)
+void Tema1::DrawMesh(const std::string &mesh, glm::vec2 center, glm::vec2 size, glm::vec3 color,
+                     float angle, const glm::mat3 &parent)
 {
-    glm::mat3 model = t2d::Translate(center.x, center.y) * t2d::Rotate(angle) * t2d::Scale(size.x, size.y);
+    glm::mat3 model = parent * t2d::Translate(center.x, center.y) * t2d::Rotate(angle) * t2d::Scale(size.x, size.y);
     RenderMesh2D(meshes[mesh], model, color);
 }
 
@@ -172,7 +222,7 @@ void Tema1::DrawOutline(const Rect &rect, glm::vec3 color, float thickness)
 }
 
 
-void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor, bool showHand)
+void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor)
 {
     DrawRect(p.handZone, glm::vec3(0.09f, 0.11f, 0.17f));
     DrawRect(p.boardZone, boardColor);
@@ -182,61 +232,73 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor, bool showHand)
     DrawLives(p.livesPos, p.hp, p.shield);
 
     for (const Card &c : p.row) {
-        DrawCardFront(c, c.position);
+        DrawCard(c);
     }
     for (size_t i = 0; i < p.hand.size(); i++) {
         if (&p == &player && (int)i == draggedIndex) {
             continue;   // drawn separately, on top
         }
-        if (showHand) {
-            DrawCardFront(p.hand[i], p.hand[i].position);
-        } else {
-            DrawCardBack(p.hand[i].position);
-        }
+        DrawCard(p.hand[i]);
     }
 }
 
 
-void Tema1::DrawCardFront(const Card &card, glm::vec2 center)
+void Tema1::DrawCard(const Card &card)
+{
+    // Flip = rotation around the vertical axis, seen from the front: the card gets narrower on X
+    // (|cos| goes 1 -> 0 -> 1); the back is visible in the first half, the front in the second
+    float angle = card.flip * glm::pi<float>();
+    glm::mat3 model = t2d::Translate(card.position.x, card.position.y) * t2d::Scale(glm::abs(glm::cos(angle)), 1);
+
+    if (card.flip > 0.5f) {
+        DrawCardFront(card, model);
+    } else {
+        DrawCardBack(model);
+    }
+}
+
+
+// The card details are drawn relative to the card's center (0, 0), then `model` places the whole card
+void Tema1::DrawCardFront(const Card &card, const glm::mat3 &model)
 {
     glm::vec2 size = glm::vec2(kCardWidth, kCardHeight);
 
     // Border + body
-    DrawRect(Rect(center, size + glm::vec2(4)), glm::vec3(0.9f));
-    DrawRect(Rect(center, size), card.GetColor());
+    DrawMesh("square", glm::vec2(0), size + glm::vec2(4), glm::vec3(0.9f), 0, model);
+    DrawMesh("square", glm::vec2(0), size, card.GetColor(), 0, model);
 
     // Type symbol
-    DrawMesh(card.GetSymbolMesh(), center + glm::vec2(0, 8), glm::vec2(35), card.GetSymbolColor(), card.GetSymbolAngle());
+    DrawMesh(card.GetSymbolMesh(), glm::vec2(0, 8), glm::vec2(35), card.GetSymbolColor(), card.GetSymbolAngle(), model);
 
     // Temporary cards: small diamond in the corner
     if (card.IsTemporary()) {
-        DrawMesh("diamond", center + glm::vec2(-22, 38), glm::vec2(13), card.GetSymbolColor());
+        DrawMesh("diamond", glm::vec2(-22, 38), glm::vec2(13), card.GetSymbolColor(), 0, model);
     }
 
     // Value V: one small square per unit, centered along the bottom edge
     const float pip = 8, step = 11;
-    float firstX = center.x - step * (card.value - 1) / 2;
+    float firstX = -step * (card.value - 1) / 2;
     for (int i = 0; i < card.value; i++) {
-        glm::vec2 p = glm::vec2(firstX + i * step, center.y - 38);
-        DrawMesh("square", p, glm::vec2(pip + 2), glm::vec3(0.1f));
-        DrawMesh("square", p, glm::vec2(pip), glm::vec3(0.9f, 0.2f, 0.2f));
+        glm::vec2 p = glm::vec2(firstX + i * step, -38);
+        DrawMesh("square", p, glm::vec2(pip + 2), glm::vec3(0.1f), 0, model);
+        DrawMesh("square", p, glm::vec2(pip), glm::vec3(0.9f, 0.2f, 0.2f), 0, model);
     }
 }
 
 
-void Tema1::DrawCardBack(glm::vec2 center)
+void Tema1::DrawCardBack(const glm::mat3 &model)
 {
     glm::vec2 size = glm::vec2(kCardWidth, kCardHeight);
     glm::vec3 border = glm::vec3(0.35f, 0.5f, 0.8f);
 
-    DrawRect(Rect(center, size + glm::vec2(4)), border);
-    DrawRect(Rect(center, size), glm::vec3(0.12f, 0.2f, 0.38f));
+    DrawMesh("square", glm::vec2(0), size + glm::vec2(4), border, 0, model);
+    DrawMesh("square", glm::vec2(0), size, glm::vec3(0.12f, 0.2f, 0.38f), 0, model);
 
     // Pattern: an X across the card
     float diagonal = glm::length(size) * 0.85f;
     float angle = glm::atan(size.y, size.x);
-    DrawMesh("square", center, glm::vec2(diagonal, 2), border,  angle);
-    DrawMesh("square", center, glm::vec2(diagonal, 2), border, -angle);
+    DrawMesh("square", glm::vec2(0), glm::vec2(diagonal, 2), border,  angle, model);
+    DrawMesh("square", glm::vec2(0), glm::vec2(diagonal, 2), border, -angle, model);
 }
 
 
@@ -249,7 +311,7 @@ void Tema1::DrawDeck(glm::vec2 center, int cardsLeft)
 
     // Up to 3 stacked backs, the top one at `center`
     for (int i = glm::min(cardsLeft, 3) - 1; i >= 0; i--) {
-        DrawCardBack(center + glm::vec2(4.0f * i, -4.0f * i));
+        DrawCardBack(t2d::Translate(center.x + 4.0f * i, center.y - 4.0f * i));
     }
 }
 
@@ -299,8 +361,8 @@ void Tema1::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY)
 
 void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
 {
-    // No dragging while the hands are still being dealt
-    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT) || cardsToDeal > 0) {
+    // Cards can be picked up only during the player's turn
+    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT) || phase != Phase::PlayerTurn) {
         return;
     }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
@@ -327,6 +389,10 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods)
         player.row.push_back(player.hand[draggedIndex]);
         player.hand.erase(player.hand.begin() + draggedIndex);
         LayoutRow(player.row, player.boardZone.center, false);
+
+        // Enemy answers after a short pause
+        phase = Phase::EnemyTurn;
+        timer = kEnemyDelay;
     }
 
     // Recompute hand slots: the remaining cards (or the rejected one) slide into place
