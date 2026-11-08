@@ -30,7 +30,8 @@ void Tema1::Init()
 
     // Meshes
     AddMeshToList(tema1::object2D::CreateSquare("square"));
-    AddMeshToList(tema1::object2D::CreateCircle("circle"));
+    AddMeshToList(tema1::object2D::CreatePolygon("circle", 40));
+    AddMeshToList(tema1::object2D::CreatePolygon("hexagon", 6));
     AddMeshToList(tema1::object2D::CreateRing("ring", 0.6f));
     AddMeshToList(tema1::object2D::CreateTriangle("triangle"));
     AddMeshToList(tema1::object2D::CreateDiamond("diamond"));
@@ -42,11 +43,13 @@ void Tema1::Init()
     enemy.deckPos  = glm::vec2(1120, 480);
     enemy.livesPos = glm::vec2(20, 590);
     enemy.crystalsPos = glm::vec2(20, 615);
+    enemy.leaderPos = glm::vec2(125, 460);
 
     player.handZone = Rect(glm::vec2(640, 65), glm::vec2(900, 110));
     player.deckPos  = glm::vec2(1120, 240);
     player.livesPos = glm::vec2(20, 140);
     player.crystalsPos = glm::vec2(20, 165);
+    player.leaderPos = glm::vec2(125, 260);
 
     // Lanes: melee next to the middle line, then ranged, then siege (mirrored for the enemy)
     for (int i = 0; i < kLaneCount; i++) {
@@ -60,12 +63,33 @@ void Tema1::Init()
 
     mouseWorld = glm::vec2(0);
 
-    NewGame();
+    leaders = Leader::All();
+    ShowLeaderMenu();
+}
+
+
+void Tema1::ShowLeaderMenu()
+{
+    phase = Phase::LeaderSelect;
+    selectedLeader = -1;
+    draggedIndex = -1;
+}
+
+
+Rect Tema1::LeaderMenuSlot(int index) const
+{
+    // Leaders side by side, centered on the screen
+    float offset = index - (leaders.size() - 1) / 2.0f;
+    return Rect(glm::vec2(kSceneWidth / 2 + offset * 200, kSceneHeight / 2), glm::vec2(120));
 }
 
 
 void Tema1::NewGame()
 {
+    // Chosen leader for the player, random one for the enemy
+    player.leader = leaders[selectedLeader];
+    enemy.leader = leaders[rand() % leaders.size()];
+
     // Random deck for each player; hands are dealt one card at a time in Update
     for (Player *p : { &player, &enemy }) {
         p->deck.clear();
@@ -179,9 +203,18 @@ void Tema1::FrameStart()
 
 void Tema1::Update(float deltaTimeSeconds)
 {
+    // Before the game: only the leader menu
+    if (phase == Phase::LeaderSelect) {
+        DrawLeaderMenu();
+        return;
+    }
+
     timer -= deltaTimeSeconds;
 
     switch (phase) {
+    case Phase::LeaderSelect:
+        break;
+
     case Phase::Dealing:
         // One card every kDealInterval seconds, alternating player / enemy
         if (timer <= 0) {
@@ -352,6 +385,7 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor)
     DrawDeck(p.deckPos, (int)p.deck.size());
     DrawLives(p.livesPos, p.hp, p.shield);
     DrawCrystals(p.crystalsPos, p.crystals);
+    DrawLeader(p.leader, p.leaderPos, 60, false);
 
     for (const Card &c : p.row) {
         DrawCard(c, kBoardScale);
@@ -485,6 +519,26 @@ void Tema1::DrawCrystals(glm::vec2 start, int crystals)
 }
 
 
+void Tema1::DrawLeader(const Leader &leader, glm::vec2 center, float size, bool highlight)
+{
+    // Highlight: the same shape drawn again behind it, in light blue and slightly bigger
+    if (highlight) {
+        DrawMesh(leader.mesh, center, glm::vec2(size * 1.15f), glm::vec3(0.5f, 0.8f, 1.0f));
+    }
+    // Gray once the ability was used
+    DrawMesh(leader.mesh, center, glm::vec2(size), leader.used ? glm::vec3(0.35f) : leader.color);
+}
+
+
+void Tema1::DrawLeaderMenu()
+{
+    for (size_t i = 0; i < leaders.size(); i++) {
+        Rect slot = LeaderMenuSlot((int)i);
+        DrawLeader(leaders[i], slot.center, slot.size.x, (int)i == selectedLeader);
+    }
+}
+
+
 void Tema1::DrawResultBanner(int result, glm::vec2 size)
 {
     // Banner over the board: green + star = win, red + X = loss, gray + ring = draw
@@ -515,9 +569,9 @@ void Tema1::DrawResultBanner(int result, glm::vec2 size)
 
 void Tema1::OnKeyPress(int key, int mods)
 {
-    // Debug: restart with new random decks
+    // New game: back to the leader menu
     if (key == GLFW_KEY_R) {
-        NewGame();
+        ShowLeaderMenu();
     }
 }
 
@@ -536,11 +590,30 @@ void Tema1::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY)
 
 void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
 {
-    // Cards can be picked up only during the player's turn
-    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT) || phase != Phase::PlayerTurn) {
+    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT)) {
         return;
     }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
+
+    // Leader menu: first click selects, a second click on the selected leader starts the game
+    if (phase == Phase::LeaderSelect) {
+        for (size_t i = 0; i < leaders.size(); i++) {
+            if (LeaderMenuSlot((int)i).Contains(mouseWorld)) {
+                if ((int)i == selectedLeader) {
+                    NewGame();
+                } else {
+                    selectedLeader = (int)i;
+                }
+                return;
+            }
+        }
+        return;
+    }
+
+    // Cards can be picked up only during the player's turn
+    if (phase != Phase::PlayerTurn) {
+        return;
+    }
 
     // Select the card under the cursor
     for (size_t i = 0; i < player.hand.size(); i++) {

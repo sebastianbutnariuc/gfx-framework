@@ -7,7 +7,7 @@ using namespace m1;
 
 Player::Player()
     : hp(0), shield(0), crystals(0), hiddenHand(false), playedIndex(-1), playedCancelled(false),
-      deckPos(0), livesPos(0), crystalsPos(0)
+      deckPos(0), livesPos(0), crystalsPos(0), leaderPos(0)
 {
 }
 

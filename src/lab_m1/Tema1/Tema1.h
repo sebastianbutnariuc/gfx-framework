@@ -5,6 +5,7 @@
 
 #include "components/simple_scene.h"
 #include "lab_m1/Tema1/Card.h"
+#include "lab_m1/Tema1/Leader.h"
 #include "lab_m1/Tema1/Player.h"
 #include "lab_m1/Tema1/Rect.h"
 
@@ -13,6 +14,7 @@ namespace m1
 {
     enum class Phase
     {
+        LeaderSelect,   // menu: choose a leader, click it again to start
         Dealing,        // hands are being dealt
         PlayerTurn,     // waiting for the player to drop a card
         EnemyTurn,      // short pause, then the enemy plays a card
@@ -35,6 +37,8 @@ namespace m1
         void OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) override;
         void OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) override;
 
+        void ShowLeaderMenu();
+        Rect LeaderMenuSlot(int index) const;   // where leader `index` is drawn in the menu
         void NewGame();
         void DealCard(Player &p);
         void EnemyPlayCard();
@@ -64,6 +68,8 @@ namespace m1
         void DrawDeck(glm::vec2 center, int cardsLeft);
         void DrawLives(glm::vec2 start, int hp, int shield);
         void DrawCrystals(glm::vec2 start, int crystals);
+        void DrawLeader(const Leader &leader, glm::vec2 center, float size, bool highlight);
+        void DrawLeaderMenu();
         // result: 1 = player won, -1 = player lost, 0 = draw
         void DrawResultBanner(int result, glm::vec2 size);
 
@@ -101,5 +107,8 @@ namespace m1
         float timer;        // time until the next action (next dealt card / enemy move)
         int cardsToDeal;    // cards left to deal (both players)
         int roundResult;    // result of the last round, shown during RoundOver
+
+        std::vector<Leader> leaders;    // the choices in the menu
+        int selectedLeader;             // index in `leaders`, -1 if none
     };
 }   // namespace m1

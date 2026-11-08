@@ -113,3 +113,13 @@
 - Next round: board cards go to the graveyard (the Medic can bring them back), life and shield reset,
   each player draws one card from the deck (same dealing animation); hands are not dealt again
 - The game ends when a player has no crystals left; the final banner compares crystals (both at 0 = draw)
+
+### 14. Leader selection
+- `Leader` class: shape, color, ability type, `used` flag
+- 5 leaders with different shapes: Foltest (circle), Emhyr (diamond), Eredin (triangle), Francesca (star), Radovid (hexagon)
+  - hexagon added by generalizing the circle mesh into `CreatePolygon(sides)` (circle = 40 sides)
+- Before the game, a menu shows the leaders side by side (`LeaderSelect` phase)
+- Click selects a leader: it is drawn again behind itself, in light blue, scaled by 1.15 (highlight)
+- A second click on the selected leader starts the game; the enemy gets a random leader
+- During the game each leader is drawn on its player's half, next to the crystals (gray once its ability is used)
+- `R` goes back to the leader menu

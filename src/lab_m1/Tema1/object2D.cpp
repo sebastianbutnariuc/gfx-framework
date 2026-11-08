@@ -62,11 +62,11 @@ Mesh* tema1::object2D::CreateDiamond(const std::string &name)
 }
 
 
-Mesh* tema1::object2D::CreateCircle(const std::string &name)
+Mesh* tema1::object2D::CreatePolygon(const std::string &name, int sides)
 {
     std::vector<glm::vec2> outline;
-    for (int i = 0; i < kSegments; i++) {
-        outline.push_back(OnCircle(0.5f, glm::two_pi<float>() * i / kSegments));
+    for (int i = 0; i < sides; i++) {
+        outline.push_back(OnCircle(0.5f, glm::two_pi<float>() * i / sides));
     }
     return BuildFan(name, outline);
 }

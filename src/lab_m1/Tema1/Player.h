@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "lab_m1/Tema1/Card.h"
+#include "lab_m1/Tema1/Leader.h"
 #include "lab_m1/Tema1/Rect.h"
 
 
@@ -57,6 +58,7 @@ namespace m1
         int shield;
         int crystals;               // rounds that can still be lost; 0 = game lost
         bool hiddenHand;            // the enemy's hand is shown face down
+        Leader leader;
 
         // Card played in the current turn (index in `row`, -1 if none) and whether Scorch cancelled it
         int playedIndex;
@@ -68,5 +70,6 @@ namespace m1
         glm::vec2 deckPos;
         glm::vec2 livesPos;
         glm::vec2 crystalsPos;
+        glm::vec2 leaderPos;
     };
 }   // namespace m1

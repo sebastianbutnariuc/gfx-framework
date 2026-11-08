@@ -13,7 +13,8 @@ namespace tema1
     namespace object2D
     {
         Mesh* CreateSquare(const std::string &name);
-        Mesh* CreateCircle(const std::string &name);
+        // Regular polygon inscribed in the circle of diameter 1 (many sides = circle)
+        Mesh* CreatePolygon(const std::string &name, int sides);
         Mesh* CreateRing(const std::string &name, float innerRatio);
         Mesh* CreateTriangle(const std::string &name);
         Mesh* CreateDiamond(const std::string &name);
