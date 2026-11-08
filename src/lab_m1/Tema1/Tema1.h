@@ -59,5 +59,6 @@ namespace m1
         Player enemy;
 
         glm::vec2 mouseWorld;
+        int draggedIndex;   // index in player.hand of the card being dragged, -1 if none
     };
 }   // namespace m1

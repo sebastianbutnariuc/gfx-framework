@@ -45,6 +45,7 @@ void Tema1::Init()
     player.livesPos  = glm::vec2(20, 170);
 
     mouseWorld = glm::vec2(0);
+    draggedIndex = -1;
 
     DealDemoHands();
 }
@@ -53,6 +54,7 @@ void Tema1::Init()
 void Tema1::DealDemoHands()
 {
     // Placeholder until the real deck logic: 10 random cards each
+    draggedIndex = -1;
     for (Player *p : { &player, &enemy }) {
         p->hand.clear();
         p->row.clear();
@@ -83,10 +85,16 @@ void Tema1::FrameStart()
 
 void Tema1::Update(float deltaTimeSeconds)
 {
+    player.Animate(deltaTimeSeconds);
+    enemy.Animate(deltaTimeSeconds);
+
     DrawPlayer(enemy, glm::vec3(0.25f, 0.10f, 0.14f), false);
     DrawPlayer(player, glm::vec3(0.10f, 0.17f, 0.30f), true);
 
-    // TODO: dragged card is drawn last, on top of everything
+    // The dragged card is drawn last, on top of everything
+    if (draggedIndex != -1) {
+        DrawCardFront(player.hand[draggedIndex], player.hand[draggedIndex].position);
+    }
 }
 
 
@@ -157,11 +165,14 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor, bool showHand)
     for (const Card &c : p.row) {
         DrawCardFront(c, c.position);
     }
-    for (const Card &c : p.hand) {
+    for (size_t i = 0; i < p.hand.size(); i++) {
+        if (&p == &player && (int)i == draggedIndex) {
+            continue;   // drawn separately, on top
+        }
         if (showHand) {
-            DrawCardFront(c, c.position);
+            DrawCardFront(p.hand[i], p.hand[i].position);
         } else {
-            DrawCardBack(c.position);
+            DrawCardBack(p.hand[i].position);
         }
     }
 }
@@ -258,19 +269,47 @@ void Tema1::OnKeyPress(int key, int mods)
 void Tema1::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY)
 {
     mouseWorld = ScreenToWorld(mouseX, mouseY);
-    // TODO: drag & drop - move the selected card
+
+    // The dragged card follows the cursor (target too, so the animation doesn't pull it back)
+    if (draggedIndex != -1) {
+        Card &card = player.hand[draggedIndex];
+        card.position = card.target = mouseWorld;
+    }
 }
 
 
 void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
 {
+    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT)) {
+        return;
+    }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
-    // TODO: drag & drop - select the card under the cursor
+
+    // Select the card under the cursor
+    for (size_t i = 0; i < player.hand.size(); i++) {
+        if (Rect(player.hand[i].position, glm::vec2(kCardWidth, kCardHeight)).Contains(mouseWorld)) {
+            draggedIndex = (int)i;
+            return;
+        }
+    }
 }
 
 
 void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods)
 {
+    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT) || draggedIndex == -1) {
+        return;
+    }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
-    // TODO: drag & drop - drop on the board or send back to hand
+
+    // Valid drop: move the card from the hand to the board row
+    if (player.boardZone.Contains(mouseWorld)) {
+        player.row.push_back(player.hand[draggedIndex]);
+        player.hand.erase(player.hand.begin() + draggedIndex);
+        LayoutRow(player.row, player.boardZone.center, false);
+    }
+
+    // Recompute hand slots: the remaining cards (or the rejected one) slide into place
+    LayoutRow(player.hand, player.handZone.center, false);
+    draggedIndex = -1;
 }

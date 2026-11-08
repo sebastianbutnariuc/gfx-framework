@@ -14,6 +14,12 @@ namespace m1
      public:
         Player() : hp(0), shield(0), deckCount(0) {}
 
+        void Animate(float deltaTime)
+        {
+            for (Card &c : hand) c.MoveTowardsTarget(deltaTime);
+            for (Card &c : row)  c.MoveTowardsTarget(deltaTime);
+        }
+
      public:
         std::vector<Card> hand;
         std::vector<Card> row;      // cards placed on this player's half of the board

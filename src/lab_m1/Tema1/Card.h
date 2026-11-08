@@ -31,6 +31,9 @@ namespace m1
 
         bool IsTemporary() const;
 
+        // Translation animation: moves `position` a step closer to `target`
+        void MoveTowardsTarget(float deltaTime);
+
         // Look of the card, depends only on its type
         glm::vec3 GetColor() const;
         glm::vec3 GetSymbolColor() const;

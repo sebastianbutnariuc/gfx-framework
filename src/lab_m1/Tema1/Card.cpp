@@ -25,6 +25,14 @@ bool Card::IsTemporary() const
 }
 
 
+void Card::MoveTowardsTarget(float deltaTime)
+{
+    // Covers a fixed fraction of the remaining distance each frame: fast at first, slows down near the target
+    const float speed = 10;
+    position += (target - position) * glm::min(1.0f, speed * deltaTime);
+}
+
+
 glm::vec3 Card::GetColor() const
 {
     switch (type) {
