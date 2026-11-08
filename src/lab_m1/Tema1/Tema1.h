@@ -25,7 +25,8 @@ namespace m1
         void OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) override;
         void OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) override;
 
-        void DealDemoHands();
+        void NewGame();
+        void DealCard(Player &p);
 
         // Window pixels (origin top-left) -> scene coordinates (origin bottom-left)
         glm::vec2 ScreenToWorld(int mouseX, int mouseY) const;
@@ -54,11 +55,17 @@ namespace m1
         static constexpr float kCardSpacing = 15;
 
         static constexpr int kMaxHP = 15;
+        static constexpr int kDeckSize = 20;
+        static constexpr int kHandSize = 10;            // cards dealt to each player at the start
+        static constexpr float kDealInterval = 0.15f;   // seconds between two dealt cards
 
         Player player;
         Player enemy;
 
         glm::vec2 mouseWorld;
         int draggedIndex;   // index in player.hand of the card being dragged, -1 if none
+
+        int cardsToDeal;    // cards left to deal at the start (both players)
+        float dealTimer;    // time until the next card is dealt
     };
 }   // namespace m1

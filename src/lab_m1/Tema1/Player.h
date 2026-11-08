@@ -12,7 +12,19 @@ namespace m1
     class Player
     {
      public:
-        Player() : hp(0), shield(0), deckCount(0) {}
+        Player() : hp(0), shield(0) {}
+
+        // Moves the top card of the deck into the hand; it starts at the deck position
+        void DrawFromDeck()
+        {
+            if (deck.empty()) {
+                return;
+            }
+            Card card = deck.back();
+            deck.pop_back();
+            card.position = deckPos;
+            hand.push_back(card);
+        }
 
         void Animate(float deltaTime)
         {
@@ -21,12 +33,12 @@ namespace m1
         }
 
      public:
+        std::vector<Card> deck;
         std::vector<Card> hand;
         std::vector<Card> row;      // cards placed on this player's half of the board
 
         int hp;
         int shield;
-        int deckCount;
 
         // Where this side is drawn
         Rect handZone;

@@ -45,27 +45,36 @@ void Tema1::Init()
     player.livesPos  = glm::vec2(20, 170);
 
     mouseWorld = glm::vec2(0);
-    draggedIndex = -1;
 
-    DealDemoHands();
+    NewGame();
 }
 
 
-void Tema1::DealDemoHands()
+void Tema1::NewGame()
 {
-    // Placeholder until the real deck logic: 10 random cards each
-    draggedIndex = -1;
+    // Random deck for each player; hands are dealt one card at a time in Update
     for (Player *p : { &player, &enemy }) {
+        p->deck.clear();
         p->hand.clear();
         p->row.clear();
-        for (int i = 0; i < 10; i++) {
-            p->hand.push_back(Card::Random());
+        for (int i = 0; i < kDeckSize; i++) {
+            p->deck.push_back(Card::Random());
         }
-        p->deckCount = 10;
         p->hp = kMaxHP;
         p->shield = 0;
-        LayoutRow(p->hand, p->handZone.center, true);
     }
+
+    draggedIndex = -1;
+    cardsToDeal = 2 * kHandSize;
+    dealTimer = 0;
+}
+
+
+void Tema1::DealCard(Player &p)
+{
+    // The new card starts on the deck, the layout gives it its slot in the hand -> it slides there
+    p.DrawFromDeck();
+    LayoutRow(p.hand, p.handZone.center, false);
 }
 
 
@@ -85,6 +94,16 @@ void Tema1::FrameStart()
 
 void Tema1::Update(float deltaTimeSeconds)
 {
+    // Dealing at the start: one card every kDealInterval seconds, alternating player / enemy
+    if (cardsToDeal > 0) {
+        dealTimer -= deltaTimeSeconds;
+        if (dealTimer <= 0) {
+            DealCard(cardsToDeal % 2 == 0 ? player : enemy);
+            cardsToDeal--;
+            dealTimer = kDealInterval;
+        }
+    }
+
     player.Animate(deltaTimeSeconds);
     enemy.Animate(deltaTimeSeconds);
 
@@ -159,7 +178,7 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor, bool showHand)
     DrawRect(p.boardZone, boardColor);
     DrawOutline(p.boardZone, boardColor * 2.0f, 2);
 
-    DrawDeck(p.deckPos, p.deckCount);
+    DrawDeck(p.deckPos, (int)p.deck.size());
     DrawLives(p.livesPos, p.hp, p.shield);
 
     for (const Card &c : p.row) {
@@ -259,9 +278,9 @@ void Tema1::DrawLives(glm::vec2 start, int hp, int shield)
 
 void Tema1::OnKeyPress(int key, int mods)
 {
-    // Debug: deal new random hands
+    // Debug: restart with new random decks
     if (key == GLFW_KEY_R) {
-        DealDemoHands();
+        NewGame();
     }
 }
 
@@ -280,7 +299,8 @@ void Tema1::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY)
 
 void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
 {
-    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT)) {
+    // No dragging while the hands are still being dealt
+    if (!IS_BIT_SET(button, GLFW_MOUSE_BUTTON_LEFT) || cardsToDeal > 0) {
         return;
     }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
