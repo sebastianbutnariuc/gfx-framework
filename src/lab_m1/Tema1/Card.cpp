@@ -6,7 +6,7 @@ using namespace m1;
 
 
 Card::Card(CardType type, int value, Lane lane)
-    : type(type), value(value), lane(lane), placedLane(lane),
+    : type(type), value(value), baseValue(value), lane(lane), placedLane(lane),
       position(0), target(0), faceUp(true), flip(1)
 {
 }
@@ -73,6 +73,8 @@ glm::vec3 Card::GetColor() const
     case CardType::Scorch:       return glm::vec3(0.50f, 0.25f, 0.70f);
     case CardType::Fog:          return glm::vec3(0.55f, 0.58f, 0.62f);
     case CardType::Rain:         return glm::vec3(0.20f, 0.55f, 0.58f);
+    case CardType::Medic:        return glm::vec3(0.90f, 0.50f, 0.65f);
+    case CardType::Decoy:        return glm::vec3(0.50f, 0.36f, 0.22f);
     default:                     return glm::vec3(1, 0, 1);
     }
 }
@@ -99,6 +101,8 @@ std::string Card::GetSymbolMesh() const
     case CardType::FrostWeather: return "star";     // all weather cards: star, different colors
     case CardType::Fog:          return "star";
     case CardType::Rain:         return "star";
+    case CardType::Medic:        return "cross";
+    case CardType::Decoy:        return "square";
     case CardType::ClearWeather: return "ring";
     case CardType::WarHorn:      return "triangle";
     case CardType::Scorch:       return "cross";

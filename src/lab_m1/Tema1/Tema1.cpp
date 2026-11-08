@@ -69,6 +69,7 @@ void Tema1::NewGame()
         p->deck.clear();
         p->hand.clear();
         p->row.clear();
+        p->graveyard.clear();
         p->EndTurn();
         for (int i = 0; i < kDeckSize; i++) {
             Card card = Card::Random();
@@ -99,18 +100,29 @@ void Tema1::DealCard(Player &p)
 
 void Tema1::EnemyPlayCard()
 {
-    if (enemy.hand.empty()) {
+    // Random playable card from the hand
+    std::vector<int> playable;
+    for (size_t i = 0; i < enemy.hand.size(); i++) {
+        if (enemy.CanPlay(enemy.hand[i])) {
+            playable.push_back((int)i);
+        }
+    }
+    if (playable.empty()) {
         return;
     }
+    int index = playable[rand() % playable.size()];
 
-    // Random card from the hand -> its lane (random lane if it fits anywhere), face down;
-    // it flips once it arrives (Card::Animate)
-    int index = rand() % (int)enemy.hand.size();
-    Lane lane = enemy.hand[index].lane;
-    if (lane == Lane::Any) {
-        lane = (Lane)(rand() % kLaneCount);
+    // Decoy -> over a random own board card; otherwise -> its lane (random lane if it fits anywhere).
+    // The card arrives face down and flips once it gets there (Card::Animate)
+    if (enemy.hand[index].type == CardType::Decoy) {
+        enemy.PlayDecoy(index, rand() % (int)enemy.row.size());
+    } else {
+        Lane lane = enemy.hand[index].lane;
+        if (lane == Lane::Any) {
+            lane = (Lane)(rand() % kLaneCount);
+        }
+        enemy.PlayCard(index, lane);
     }
-    enemy.PlayCard(index, lane);
     LayoutAll();
 }
 
@@ -118,7 +130,7 @@ void Tema1::EnemyPlayCard()
 bool Tema1::IsGameOver() const
 {
     // Someone has no life left, or nobody has cards left to play
-    return player.hp == 0 || enemy.hp == 0 || (player.hand.empty() && enemy.hand.empty());
+    return player.hp == 0 || enemy.hp == 0 || (!player.HasPlayableCard() && !enemy.HasPlayableCard());
 }
 
 
@@ -177,8 +189,8 @@ void Tema1::Update(float deltaTimeSeconds)
         break;
 
     case Phase::PlayerTurn:
-        // No cards left (but the enemy still has some): skip to the enemy's move
-        if (player.hand.empty()) {
+        // No playable cards left (but the enemy still has some): skip to the enemy's move
+        if (!player.HasPlayableCard()) {
             phase = Phase::EnemyTurn;
             timer = kEnemyDelay;
         }
@@ -287,7 +299,7 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor)
 
     // Lanes; while dragging, the ones where the card can be dropped are highlighted
     for (int i = 0; i < kLaneCount; i++) {
-        bool highlight = (&p == &player && draggedIndex != -1 && player.hand[draggedIndex].CanGoOn((Lane)i));
+        bool highlight = (&p == &player && draggedIndex != -1 && player.CanPlayOn(player.hand[draggedIndex], (Lane)i));
         DrawRect(p.lanes[i], highlight ? boardColor * 2.0f : boardColor);
         DrawOutline(p.lanes[i], boardColor * 2.5f, 2);
 
@@ -494,10 +506,24 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods)
     }
     mouseWorld = ScreenToWorld(mouseX, mouseY);
 
-    // Valid drop = on a lane where the card is allowed; the enemy answers after a short pause
-    int lane = player.LaneAt(mouseWorld);
-    if (lane != -1 && player.hand[draggedIndex].CanGoOn((Lane)lane)) {
-        player.PlayCard(draggedIndex, (Lane)lane);
+    // Valid drop: a Decoy over one of your board cards, any other card on a lane where it is allowed
+    bool played = false;
+    if (player.hand[draggedIndex].type == CardType::Decoy) {
+        int rowIndex = player.RowCardAt(mouseWorld, glm::vec2(kCardWidth, kCardHeight) * kBoardScale);
+        if (rowIndex != -1) {
+            player.PlayDecoy(draggedIndex, rowIndex);
+            played = true;
+        }
+    } else {
+        int lane = player.LaneAt(mouseWorld);
+        if (lane != -1 && player.CanPlayOn(player.hand[draggedIndex], (Lane)lane)) {
+            player.PlayCard(draggedIndex, (Lane)lane);
+            played = true;
+        }
+    }
+
+    // The enemy answers after a short pause
+    if (played) {
         phase = Phase::EnemyTurn;
         timer = kEnemyDelay;
     }

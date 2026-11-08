@@ -21,6 +21,8 @@ namespace m1
         Scorch,         // purple
         Fog,            // gray, ranged
         Rain,           // teal, siege
+        Medic,          // pink
+        Decoy,          // brown
         Count
     };
 
@@ -58,6 +60,7 @@ namespace m1
      public:
         CardType type;
         int value;
+        int baseValue;          // starting value, restored when the Medic brings the card back
         Lane lane;              // where it can be placed
         Lane placedLane;        // where it was placed (when on the board)
 

@@ -94,3 +94,14 @@
 - Effect: the opponent's cards on that lane lose 1 (applied together, in the weather slot of the effect order)
 - Clear Weather removes all three weather types
 - All weather cards use a star symbol, with different colors (Frost white, Fog gray, Rain teal)
+
+### 12. Medic and Decoy
+- Graveyard: destroyed cards are kept in `Player::graveyard` instead of disappearing
+- Medic (pink, temporary): brings a random card from the graveyard back to the hand, with its starting value
+  - applied right after Spy in the effect order; the card slides from where it was destroyed to the hand
+- Decoy (brown): dragged over one of your own board cards, it takes its place (same lane and slot)
+  - the replaced card slides back to the hand and can be played again, with its effect applied again
+  - the Decoy itself has no effect, it only holds the place
+  - dropped anywhere else, it goes back to the hand; while dragging, only lanes with your cards are highlighted
+- A Decoy is playable only if you have cards on the board (`Player::CanPlay`); a player with no playable card skips the turn
+- The game also ends when neither player has a playable card

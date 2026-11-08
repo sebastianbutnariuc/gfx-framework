@@ -9,7 +9,7 @@ void Rules::ResolveTurn(Player &player, Player &enemy) const
 {
     const CardType order[] =
     {
-        CardType::Scorch, CardType::Spy, CardType::ClearWeather,
+        CardType::Scorch, CardType::Spy, CardType::Medic, CardType::ClearWeather,
         CardType::FrostWeather, CardType::Fog, CardType::Rain,      // weather, together
         CardType::WarHorn, CardType::Shield, CardType::Damage, CardType::Heal
     };
@@ -62,6 +62,10 @@ void Rules::ApplyEffect(Card &card, int index, Player &owner, Player &opponent) 
             opponent.hand.erase(opponent.hand.begin() + stolenIndex);
             owner.hand.push_back(stolen);
         }
+        break;
+
+    case CardType::Medic:
+        owner.ReviveRandom();
         break;
 
     case CardType::ClearWeather:

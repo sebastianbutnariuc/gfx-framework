@@ -20,14 +20,26 @@ namespace m1
         // Moves a card from the hand to a board lane and remembers it as this turn's card
         void PlayCard(int handIndex, Lane lane);
 
-        // Lane under the given point, or -1 if none
+        // Decoy: takes the place of a board card, which goes back to the hand
+        void PlayDecoy(int handIndex, int rowIndex);
+
+        // Medic: a random card from the graveyard goes back to the hand, with its starting value
+        void ReviveRandom();
+
+        // Placement rules: normal cards go on their lane, a Decoy goes over one of your board cards
+        bool CanPlay(const Card &card) const;
+        bool CanPlayOn(const Card &card, Lane lane) const;
+        bool HasPlayableCard() const;
+
+        // Lane / board card under the given point, or -1 if none
         int LaneAt(glm::vec2 p) const;
+        int RowCardAt(glm::vec2 p, glm::vec2 cardSize) const;
 
         // Damage is absorbed by the shield first
         void TakeDamage(int amount);
         void Heal(int amount, int maxHP);
 
-        // Removes the board cards whose value reached 0 and forgets this turn's card
+        // Moves the board cards whose value reached 0 to the graveyard and forgets this turn's card
         void EndTurn();
 
         void Animate(float deltaTime);
@@ -36,6 +48,7 @@ namespace m1
         std::vector<Card> deck;
         std::vector<Card> hand;
         std::vector<Card> row;      // cards placed on this player's half of the board (all lanes)
+        std::vector<Card> graveyard;    // destroyed cards
 
         int hp;
         int shield;
