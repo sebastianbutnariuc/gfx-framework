@@ -41,10 +41,12 @@ void Tema1::Init()
     enemy.handZone = Rect(glm::vec2(640, 655), glm::vec2(900, 110));
     enemy.deckPos  = glm::vec2(1120, 480);
     enemy.livesPos = glm::vec2(20, 590);
+    enemy.crystalsPos = glm::vec2(20, 615);
 
     player.handZone = Rect(glm::vec2(640, 65), glm::vec2(900, 110));
     player.deckPos  = glm::vec2(1120, 240);
     player.livesPos = glm::vec2(20, 140);
+    player.crystalsPos = glm::vec2(20, 165);
 
     // Lanes: melee next to the middle line, then ranged, then siege (mirrored for the enemy)
     for (int i = 0; i < kLaneCount; i++) {
@@ -70,7 +72,8 @@ void Tema1::NewGame()
         p->hand.clear();
         p->row.clear();
         p->graveyard.clear();
-        p->EndTurn();
+        p->NewRound(kMaxHP);
+        p->crystals = kCrystals;
         for (int i = 0; i < kDeckSize; i++) {
             Card card = Card::Random();
             if (p->hiddenHand) {
@@ -79,14 +82,13 @@ void Tema1::NewGame()
             }
             p->deck.push_back(card);
         }
-        p->hp = kMaxHP;
-        p->shield = 0;
     }
 
     draggedIndex = -1;
     phase = Phase::Dealing;
     timer = 0;
     cardsToDeal = 2 * kHandSize;
+    roundResult = 0;
 }
 
 
@@ -127,10 +129,37 @@ void Tema1::EnemyPlayCard()
 }
 
 
-bool Tema1::IsGameOver() const
+bool Tema1::IsRoundOver() const
 {
     // Someone has no life left, or nobody has cards left to play
     return player.hp == 0 || enemy.hp == 0 || (!player.HasPlayableCard() && !enemy.HasPlayableCard());
+}
+
+
+void Tema1::EndRound()
+{
+    // Less life loses a crystal; equal life (draw) -> both lose one
+    roundResult = (player.hp > enemy.hp) - (player.hp < enemy.hp);
+    if (roundResult <= 0) player.crystals--;
+    if (roundResult >= 0) enemy.crystals--;
+
+    cout << "Round over: " << (roundResult > 0 ? "you win" : roundResult < 0 ? "you lose" : "draw")
+         << " (" << player.hp << " - " << enemy.hp << ")\n";
+
+    phase = Phase::RoundOver;
+    timer = kRoundPause;
+}
+
+
+void Tema1::StartRound()
+{
+    // Board cleared, life reset; no new hands, just one more card for each player
+    player.NewRound(kMaxHP);
+    enemy.NewRound(kMaxHP);
+
+    phase = Phase::Dealing;
+    timer = 0;
+    cardsToDeal = 2;
 }
 
 
@@ -178,12 +207,21 @@ void Tema1::Update(float deltaTimeSeconds)
             Rules(kMaxHP).ResolveTurn(player, enemy);
             LayoutAll();    // cards stolen by Spy / destroyed cards
 
-            if (IsGameOver()) {
-                phase = Phase::GameOver;
-                cout << "Game over: " << (player.hp > enemy.hp ? "you win" : player.hp < enemy.hp ? "you lose" : "draw")
-                     << " (" << player.hp << " - " << enemy.hp << ")\n";
+            if (IsRoundOver()) {
+                EndRound();
             } else {
                 phase = Phase::PlayerTurn;
+            }
+        }
+        break;
+
+    case Phase::RoundOver:
+        // After the pause: next round, or the end of the game if someone has no crystals left
+        if (timer <= 0) {
+            if (player.crystals == 0 || enemy.crystals == 0) {
+                phase = Phase::GameOver;
+            } else {
+                StartRound();
             }
         }
         break;
@@ -211,8 +249,12 @@ void Tema1::Update(float deltaTimeSeconds)
         DrawCard(player.hand[draggedIndex]);
     }
 
+    if (phase == Phase::RoundOver) {
+        DrawResultBanner(roundResult, glm::vec2(300, 90));
+    }
     if (phase == Phase::GameOver) {
-        DrawGameOver();
+        int gameResult = (player.crystals > enemy.crystals) - (player.crystals < enemy.crystals);
+        DrawResultBanner(gameResult, glm::vec2(500, 140));
     }
 }
 
@@ -309,6 +351,7 @@ void Tema1::DrawPlayer(const Player &p, glm::vec3 boardColor)
 
     DrawDeck(p.deckPos, (int)p.deck.size());
     DrawLives(p.livesPos, p.hp, p.shield);
+    DrawCrystals(p.crystalsPos, p.crystals);
 
     for (const Card &c : p.row) {
         DrawCard(c, kBoardScale);
@@ -432,26 +475,36 @@ void Tema1::DrawLives(glm::vec2 start, int hp, int shield)
 }
 
 
-void Tema1::DrawGameOver()
+void Tema1::DrawCrystals(glm::vec2 start, int crystals)
+{
+    // One diamond per crystal: bright while it's still there, gray once lost
+    for (int i = 0; i < kCrystals; i++) {
+        glm::vec3 color = (i < crystals) ? glm::vec3(0.4f, 0.85f, 0.95f) : glm::vec3(0.18f, 0.2f, 0.22f);
+        DrawMesh("diamond", start + glm::vec2(8 + i * 22.0f, 0), glm::vec2(16), color);
+    }
+}
+
+
+void Tema1::DrawResultBanner(int result, glm::vec2 size)
 {
     // Banner over the board: green + star = win, red + X = loss, gray + ring = draw
     glm::vec3 color = glm::vec3(0.4f);
     std::string symbol = "ring";
     float angle = 0;
 
-    if (player.hp > enemy.hp) {
+    if (result > 0) {
         color = glm::vec3(0.25f, 0.65f, 0.35f);
         symbol = "star";
-    } else if (player.hp < enemy.hp) {
+    } else if (result < 0) {
         color = glm::vec3(0.80f, 0.22f, 0.22f);
         symbol = "cross";
         angle = glm::quarter_pi<float>();
     }
 
-    Rect banner(glm::vec2(kBoardCenterX, kMiddleY), glm::vec2(500, 140));
+    Rect banner(glm::vec2(kBoardCenterX, kMiddleY), size);
     DrawRect(banner, color);
     DrawOutline(banner, glm::vec3(0.95f), 4);
-    DrawMesh(symbol, banner.center, glm::vec2(90), glm::vec3(0.95f), angle);
+    DrawMesh(symbol, banner.center, glm::vec2(size.y * 0.65f), glm::vec3(0.95f), angle);
 }
 
 

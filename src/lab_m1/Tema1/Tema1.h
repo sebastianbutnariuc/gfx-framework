@@ -17,6 +17,7 @@ namespace m1
         PlayerTurn,     // waiting for the player to drop a card
         EnemyTurn,      // short pause, then the enemy plays a card
         Reveal,         // enemy card is moving to the board and flipping
+        RoundOver,      // round result shown for a moment, then the next round starts
         GameOver        // result shown, R starts a new game
     };
 
@@ -37,7 +38,9 @@ namespace m1
         void NewGame();
         void DealCard(Player &p);
         void EnemyPlayCard();
-        bool IsGameOver() const;
+        bool IsRoundOver() const;
+        void EndRound();
+        void StartRound();
 
         // Window pixels (origin top-left) -> scene coordinates (origin bottom-left)
         glm::vec2 ScreenToWorld(int mouseX, int mouseY) const;
@@ -60,7 +63,9 @@ namespace m1
         void DrawCardBack(const glm::mat3 &model);
         void DrawDeck(glm::vec2 center, int cardsLeft);
         void DrawLives(glm::vec2 start, int hp, int shield);
-        void DrawGameOver();
+        void DrawCrystals(glm::vec2 start, int crystals);
+        // result: 1 = player won, -1 = player lost, 0 = draw
+        void DrawResultBanner(int result, glm::vec2 size);
 
      private:
         // Logical scene size: the camera always shows this, whatever the window size
@@ -79,6 +84,8 @@ namespace m1
         static constexpr float kLaneHeight = 76;
 
         static constexpr int kMaxHP = 15;
+        static constexpr int kCrystals = 2;
+        static constexpr float kRoundPause = 2.0f;      // seconds the round result stays on screen
         static constexpr int kDeckSize = 20;
         static constexpr int kHandSize = 10;            // cards dealt to each player at the start
         static constexpr float kDealInterval = 0.15f;   // seconds between two dealt cards
@@ -92,6 +99,7 @@ namespace m1
 
         Phase phase;
         float timer;        // time until the next action (next dealt card / enemy move)
-        int cardsToDeal;    // cards left to deal at the start (both players)
+        int cardsToDeal;    // cards left to deal (both players)
+        int roundResult;    // result of the last round, shown during RoundOver
     };
 }   // namespace m1

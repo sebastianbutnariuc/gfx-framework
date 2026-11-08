@@ -42,6 +42,9 @@ namespace m1
         // Moves the board cards whose value reached 0 to the graveyard and forgets this turn's card
         void EndTurn();
 
+        // Start of a round: the board goes to the graveyard, life and shield are reset
+        void NewRound(int maxHP);
+
         void Animate(float deltaTime);
 
      public:
@@ -52,6 +55,7 @@ namespace m1
 
         int hp;
         int shield;
+        int crystals;               // rounds that can still be lost; 0 = game lost
         bool hiddenHand;            // the enemy's hand is shown face down
 
         // Card played in the current turn (index in `row`, -1 if none) and whether Scorch cancelled it
@@ -63,5 +67,6 @@ namespace m1
         Rect lanes[kLaneCount];     // indexed by Lane (Melee, Ranged, Siege)
         glm::vec2 deckPos;
         glm::vec2 livesPos;
+        glm::vec2 crystalsPos;
     };
 }   // namespace m1

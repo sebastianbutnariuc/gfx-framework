@@ -6,7 +6,8 @@ using namespace m1;
 
 
 Player::Player()
-    : hp(0), shield(0), hiddenHand(false), playedIndex(-1), playedCancelled(false), deckPos(0), livesPos(0)
+    : hp(0), shield(0), crystals(0), hiddenHand(false), playedIndex(-1), playedCancelled(false),
+      deckPos(0), livesPos(0), crystalsPos(0)
 {
 }
 
@@ -148,6 +149,16 @@ void Player::EndTurn()
     }
     playedIndex = -1;
     playedCancelled = false;
+}
+
+
+void Player::NewRound(int maxHP)
+{
+    graveyard.insert(graveyard.end(), row.begin(), row.end());
+    row.clear();
+    EndTurn();
+    hp = maxHP;
+    shield = 0;
 }
 
 

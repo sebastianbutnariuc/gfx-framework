@@ -104,4 +104,12 @@
   - the Decoy itself has no effect, it only holds the place
   - dropped anywhere else, it goes back to the hand; while dragging, only lanes with your cards are highlighted
 - A Decoy is playable only if you have cards on the board (`Player::CanPlay`); a player with no playable card skips the turn
-- The game also ends when neither player has a playable card
+- A round also ends when neither player has a playable card
+
+### 13. Rounds
+- The game is played in rounds; a round ends when a player's life reaches 0 or neither player has a playable card
+- Each player has 2 crystals (diamonds above the lives); the player with less life loses one, on a draw both lose one
+- The round result is shown for 2 seconds (same banner as the game result, smaller)
+- Next round: board cards go to the graveyard (the Medic can bring them back), life and shield reset,
+  each player draws one card from the deck (same dealing animation); hands are not dealt again
+- The game ends when a player has no crystals left; the final banner compares crystals (both at 0 = draw)
