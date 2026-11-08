@@ -118,7 +118,8 @@
 - `Leader` class: shape, color, ability type, `used` flag
 - 5 leaders with different shapes: Foltest (circle), Emhyr (diamond), Eredin (triangle), Francesca (star), Radovid (hexagon)
   - hexagon added by generalizing the circle mesh into `CreatePolygon(sides)` (circle = 40 sides)
-- Before the game, a menu shows the leaders side by side (`LeaderSelect` phase)
+- Before the game, a menu shows the leaders side by side (`LeaderSelect` phase), with their names below
+  - names drawn with the framework's `TextRenderer` (font loaded at 2x and drawn at 0.5, sharp on HiDPI screens)
 - Click selects a leader: it is drawn again behind itself, in light blue, scaled by 1.15 (highlight)
 - A second click on the selected leader starts the game; the enemy gets a random leader
 - During the game each leader is drawn on its player's half, next to the crystals (gray once its ability is used)

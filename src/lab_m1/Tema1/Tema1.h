@@ -1,9 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "components/simple_scene.h"
+#include "components/text_renderer.h"
 #include "lab_m1/Tema1/Card.h"
 #include "lab_m1/Tema1/Leader.h"
 #include "lab_m1/Tema1/Player.h"
@@ -70,6 +72,7 @@ namespace m1
         void DrawCrystals(glm::vec2 start, int crystals);
         void DrawLeader(const Leader &leader, glm::vec2 center, float size, bool highlight);
         void DrawLeaderMenu();
+        void DrawTextCentered(const std::string &text, glm::vec2 center, glm::vec3 color);
         // result: 1 = player won, -1 = player lost, 0 = draw
         void DrawResultBanner(int result, glm::vec2 size);
 
@@ -110,5 +113,7 @@ namespace m1
 
         std::vector<Leader> leaders;    // the choices in the menu
         int selectedLeader;             // index in `leaders`, -1 if none
+
+        std::unique_ptr<gfxc::TextRenderer> textRenderer;
     };
 }   // namespace m1

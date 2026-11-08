@@ -22,23 +22,24 @@ namespace m1
     {
      public:
         Leader() : mesh("circle"), color(1), ability(LeaderAbility::ClearWeather), used(false) {}
-        Leader(const std::string &mesh, glm::vec3 color, LeaderAbility ability)
-            : mesh(mesh), color(color), ability(ability), used(false) {}
+        Leader(const std::string &name, const std::string &mesh, glm::vec3 color, LeaderAbility ability)
+            : name(name), mesh(mesh), color(color), ability(ability), used(false) {}
 
         // All the leaders that can be chosen
         static std::vector<Leader> All()
         {
             return
             {
-                Leader("circle",   glm::vec3(0.30f, 0.50f, 0.90f), LeaderAbility::ClearWeather),          // Foltest
-                Leader("diamond",  glm::vec3(0.90f, 0.75f, 0.25f), LeaderAbility::RevealHand),            // Emhyr
-                Leader("triangle", glm::vec3(0.80f, 0.25f, 0.25f), LeaderAbility::DoubleMelee),           // Eredin
-                Leader("star",     glm::vec3(0.30f, 0.70f, 0.40f), LeaderAbility::DestroyStrongestMelee), // Francesca
-                Leader("hexagon",  glm::vec3(0.60f, 0.35f, 0.80f), LeaderAbility::HornSiege)              // Radovid
+                Leader("Foltest",   "circle",   glm::vec3(0.30f, 0.50f, 0.90f), LeaderAbility::ClearWeather),
+                Leader("Emhyr",     "diamond",  glm::vec3(0.90f, 0.75f, 0.25f), LeaderAbility::RevealHand),
+                Leader("Eredin",    "triangle", glm::vec3(0.80f, 0.25f, 0.25f), LeaderAbility::DoubleMelee),
+                Leader("Francesca", "star",     glm::vec3(0.30f, 0.70f, 0.40f), LeaderAbility::DestroyStrongestMelee),
+                Leader("Radovid",   "hexagon",  glm::vec3(0.60f, 0.35f, 0.80f), LeaderAbility::HornSiege)
             };
         }
 
      public:
+        std::string name;
         std::string mesh;       // the leader's shape
         glm::vec3 color;
         LeaderAbility ability;

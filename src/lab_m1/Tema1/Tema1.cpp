@@ -63,6 +63,11 @@ void Tema1::Init()
 
     mouseWorld = glm::vec2(0);
 
+    // Text over the same logical space (its origin is top-left). The font is loaded at 2x
+    // and drawn at 0.5, so it stays sharp on HiDPI screens
+    textRenderer.reset(new gfxc::TextRenderer(window->props.selfDir, (GLuint)kSceneWidth, (GLuint)kSceneHeight));
+    textRenderer->Load(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::FONTS, "Hack-Bold.ttf"), 48);
+
     leaders = Leader::All();
     ShowLeaderMenu();
 }
@@ -540,7 +545,26 @@ void Tema1::DrawLeaderMenu()
     for (size_t i = 0; i < leaders.size(); i++) {
         Rect slot = LeaderMenuSlot((int)i);
         DrawLeader(leaders[i], slot.center, slot.size.x, (int)i == selectedLeader);
+        DrawTextCentered(leaders[i].name, slot.center - glm::vec2(0, 100), glm::vec3(0.9f));
     }
+}
+
+
+void Tema1::DrawTextCentered(const std::string &text, glm::vec2 center, glm::vec3 color)
+{
+    const float scale = 0.5f;
+
+    // Width = sum of the glyph advances (stored in 1/64 pixels)
+    float width = 0;
+    for (char c : text) {
+        width += (textRenderer->Characters[c].Advance >> 6) * scale;
+    }
+    float height = textRenderer->Characters['H'].Size.y * scale;
+
+    // The text renderer's y axis points down, from the top of the scene
+    float x = center.x - width / 2;
+    float y = kSceneHeight - center.y - height / 2;
+    textRenderer->RenderText(text, x, y, scale, color);
 }
 
 
