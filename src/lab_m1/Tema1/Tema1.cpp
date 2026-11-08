@@ -1,9 +1,12 @@
 #include "lab_m1/Tema1/Tema1.h"
 
+#include <iostream>
+
 #include "lab_m1/Tema1/transform2D.h"
 #include "lab_m1/Tema1/object2D.h"
 #include "lab_m1/Tema1/Rules.h"
 
+using namespace std;
 using namespace m1;
 
 namespace t2d = tema1::transform2D;
@@ -100,6 +103,13 @@ void Tema1::EnemyPlayCard()
 }
 
 
+bool Tema1::IsGameOver() const
+{
+    // Someone has no life left, or nobody has cards left to play
+    return player.hp == 0 || enemy.hp == 0 || (player.hand.empty() && enemy.hand.empty());
+}
+
+
 void Tema1::FrameStart()
 {
     glClearColor(0.05f, 0.07f, 0.12f, 1);
@@ -143,11 +153,26 @@ void Tema1::Update(float deltaTimeSeconds)
         if (enemy.playedIndex == -1 || enemy.row[enemy.playedIndex].flip >= 1) {
             Rules(kMaxHP).ResolveTurn(player, enemy);
             LayoutAll();    // cards stolen by Spy / destroyed cards
-            phase = Phase::PlayerTurn;
+
+            if (IsGameOver()) {
+                phase = Phase::GameOver;
+                cout << "Game over: " << (player.hp > enemy.hp ? "you win" : player.hp < enemy.hp ? "you lose" : "draw")
+                     << " (" << player.hp << " - " << enemy.hp << ")\n";
+            } else {
+                phase = Phase::PlayerTurn;
+            }
         }
         break;
 
     case Phase::PlayerTurn:
+        // No cards left (but the enemy still has some): skip to the enemy's move
+        if (player.hand.empty()) {
+            phase = Phase::EnemyTurn;
+            timer = kEnemyDelay;
+        }
+        break;
+
+    case Phase::GameOver:
         break;
     }
 
@@ -160,6 +185,10 @@ void Tema1::Update(float deltaTimeSeconds)
     // The dragged card is drawn last, on top of everything
     if (draggedIndex != -1) {
         DrawCard(player.hand[draggedIndex]);
+    }
+
+    if (phase == Phase::GameOver) {
+        DrawGameOver();
     }
 }
 
@@ -336,6 +365,29 @@ void Tema1::DrawLives(glm::vec2 start, int hp, int shield)
     for (int i = 0; i < shield; i++) {
         DrawMesh("square", start + glm::vec2(i * step, -step), glm::vec2(cell), glm::vec3(0.3f, 0.55f, 1.0f));
     }
+}
+
+
+void Tema1::DrawGameOver()
+{
+    // Banner over the board: green + star = win, red + X = loss, gray + ring = draw
+    glm::vec3 color = glm::vec3(0.4f);
+    std::string symbol = "ring";
+    float angle = 0;
+
+    if (player.hp > enemy.hp) {
+        color = glm::vec3(0.25f, 0.65f, 0.35f);
+        symbol = "star";
+    } else if (player.hp < enemy.hp) {
+        color = glm::vec3(0.80f, 0.22f, 0.22f);
+        symbol = "cross";
+        angle = glm::quarter_pi<float>();
+    }
+
+    Rect banner(glm::vec2(600, 365), glm::vec2(500, 140));
+    DrawRect(banner, color);
+    DrawOutline(banner, glm::vec3(0.95f), 4);
+    DrawMesh(symbol, banner.center, glm::vec2(90), glm::vec3(0.95f), angle);
 }
 
 

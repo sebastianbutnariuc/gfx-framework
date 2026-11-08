@@ -16,7 +16,8 @@ namespace m1
         Dealing,        // hands are being dealt
         PlayerTurn,     // waiting for the player to drop a card
         EnemyTurn,      // short pause, then the enemy plays a card
-        Reveal          // enemy card is moving to the board and flipping
+        Reveal,         // enemy card is moving to the board and flipping
+        GameOver        // result shown, R starts a new game
     };
 
     class Tema1 : public gfxc::SimpleScene
@@ -36,6 +37,7 @@ namespace m1
         void NewGame();
         void DealCard(Player &p);
         void EnemyPlayCard();
+        bool IsGameOver() const;
 
         // Window pixels (origin top-left) -> scene coordinates (origin bottom-left)
         glm::vec2 ScreenToWorld(int mouseX, int mouseY) const;
@@ -57,6 +59,7 @@ namespace m1
         void DrawCardBack(const glm::mat3 &model);
         void DrawDeck(glm::vec2 center, int cardsLeft);
         void DrawLives(glm::vec2 start, int hp, int shield);
+        void DrawGameOver();
 
      private:
         // Logical scene size: the camera always shows this, whatever the window size

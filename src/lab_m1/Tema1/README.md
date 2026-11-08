@@ -69,5 +69,9 @@
 - Cards that reach value 0 are destroyed; the rows rearrange with animation
 - `Player` handles its own state: `PlayCard`, `TakeDamage`, `Heal`, `EndTurn`
 
-## To do
-- End of the game
+### 9. End of the game
+- The game ends when a player's life reaches 0 or when both players run out of cards
+- The player with more life wins; equal life (including both at 0 at the same time) is a draw
+- A player with no cards left skips their turn; board effects keep applying
+- Result banner over the board: green + star = win, red + X = loss, gray + ring = draw (also printed in the console)
+- `R` starts a new game
