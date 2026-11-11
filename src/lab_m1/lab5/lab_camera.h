@@ -115,18 +115,18 @@ namespace implemented
         {
             // TODO(student): Rotate the camera in third-person mode around
             // the OX axis. Use `distanceToTarget` as translation distance.
-            TranslateRight(distanceToTarget);
+            TranslateForward(distanceToTarget);
             RotateFirstPerson_OX(angle);
-            TranslateRight(-distanceToTarget);
+            TranslateForward(-distanceToTarget);
         }
 
         void RotateThirdPerson_OY(float angle)
         {
             // TODO(student): Rotate the camera in third-person mode around
             // the OY axis.
-            TranslateUpward(distanceToTarget);
+            TranslateForward(distanceToTarget);
             RotateFirstPerson_OY(angle);
-            TranslateUpward(-distanceToTarget);
+            TranslateForward(-distanceToTarget);
         }
 
         void RotateThirdPerson_OZ(float angle)

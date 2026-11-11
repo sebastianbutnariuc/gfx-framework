@@ -267,7 +267,8 @@ void Lab5::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY)
             // TODO(student): Rotate the camera in third-person mode around
             // OX and OY using `deltaX` and `deltaY`. Use the sensitivity
             // variables for setting up the rotation speed.
-
+            camera->RotateThirdPerson_OX(-sensivityOX * deltaY);
+            camera->RotateThirdPerson_OY(-sensivityOY * deltaX);
         }
     }
 }
