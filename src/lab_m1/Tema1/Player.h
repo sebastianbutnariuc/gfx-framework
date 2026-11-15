@@ -19,7 +19,7 @@ namespace m1
         void DrawFromDeck();
 
         // Moves a card from the hand to a board lane and remembers it as this turn's card
-        void PlayCard(int handIndex, Lane lane);
+        void PlayCard(int handIndex, int lane);
 
         // Decoy: takes the place of a board card, which goes back to the hand
         void PlayDecoy(int handIndex, int rowIndex);
@@ -29,7 +29,7 @@ namespace m1
 
         // Placement rules: normal cards go on their lane, a Decoy goes over one of your board cards
         bool CanPlay(const Card &card) const;
-        bool CanPlayOn(const Card &card, Lane lane) const;
+        bool CanPlayOn(const Card &card, int lane) const;
         bool HasPlayableCard() const;
 
         // Lane / board card under the given point, or -1 if none
@@ -39,6 +39,9 @@ namespace m1
         // Damage is absorbed by the shield first
         void TakeDamage(int amount);
         void Heal(int amount, int maxHP);
+
+        // Clear Weather: this player's weather cards get value 0 (removed at EndTurn)
+        void ClearWeather();
 
         // Moves the board cards whose value reached 0 to the graveyard and forgets this turn's card
         void EndTurn();
@@ -66,7 +69,7 @@ namespace m1
 
         // Where this side is drawn
         Rect handZone;
-        Rect lanes[kLaneCount];     // indexed by Lane (Melee, Ranged, Siege)
+        Rect lanes[LANE_COUNT];     // indexed by lane (LANE_MELEE, LANE_RANGED, LANE_SIEGE)
         glm::vec2 deckPos;
         glm::vec2 livesPos;
         glm::vec2 crystalsPos;

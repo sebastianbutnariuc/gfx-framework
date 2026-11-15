@@ -1,11 +1,9 @@
 #pragma once
 
-#include <memory>
 #include <string>
 #include <vector>
 
 #include "components/simple_scene.h"
-#include "components/text_renderer.h"
 #include "lab_m1/Tema1/Card.h"
 #include "lab_m1/Tema1/Leader.h"
 #include "lab_m1/Tema1/Player.h"
@@ -14,16 +12,14 @@
 
 namespace m1
 {
-    enum class Phase
-    {
-        LeaderSelect,   // menu: choose a leader, click it again to start
-        Dealing,        // hands are being dealt
-        PlayerTurn,     // waiting for the player to drop a card
-        EnemyTurn,      // short pause, then the enemy plays a card
-        Reveal,         // enemy card is moving to the board and flipping
-        RoundOver,      // round result shown for a moment, then the next round starts
-        GameOver        // result shown, R starts a new game
-    };
+    // Game phases (values of Tema1::phase)
+    const int PHASE_LEADER_SELECT = 0;  // menu: choose a leader, click it again to start
+    const int PHASE_DEALING = 1;        // hands are being dealt
+    const int PHASE_PLAYER_TURN = 2;    // waiting for the player to drop a card
+    const int PHASE_ENEMY_TURN = 3;     // short pause, then the enemy plays a card
+    const int PHASE_REVEAL = 4;         // enemy card is moving to the board and flipping
+    const int PHASE_ROUND_OVER = 5;     // round result shown for a moment, then the next round starts
+    const int PHASE_GAME_OVER = 6;      // result shown, R starts a new game
 
     class Tema1 : public gfxc::SimpleScene
     {
@@ -42,11 +38,22 @@ namespace m1
         void ShowLeaderMenu();
         Rect LeaderMenuSlot(int index) const;   // where leader `index` is drawn in the menu
         void NewGame();
+        Card RandomCard();  // random type, value 1..4, lane allowed by its type
         void DealCard(Player &p);
         void EnemyPlayCard();
         bool IsRoundOver() const;
         void EndRound();
         void StartRound();
+
+        // Gwent card effects
+        // Applies the effects of all the cards on the board (new ones and older ones),
+        // by type in the fixed order: Scorch, Spy, Medic, Clear Weather, weather (Frost, Fog, Rain), War Horn, Shield, Damage, Heal.
+        // Temporary cards lose 1 value after their effect (War Horn: only when it doubled a card);
+        // cards that reach 0 are removed.
+        void ResolveTurn();
+        // Applies the owner's leader ability (once per game) and marks the leader as used.
+        // Called only between turns (no card of the current turn on the board).
+        void UseLeaderAbility(Player &owner, Player &opponent);
 
         // Window pixels (origin top-left) -> scene coordinates (origin bottom-left)
         glm::vec2 ScreenToWorld(int mouseX, int mouseY) const;
@@ -55,50 +62,47 @@ namespace m1
         void LayoutRow(const std::vector<Card*> &cards, glm::vec2 center, float step);
         void LayoutAll();   // hands and board lanes of both players
 
-        // Drawing
-        // `parent` = transform applied on top (e.g. the card's own matrix, for the card's details)
-        void DrawMesh(const std::string &mesh, glm::vec2 center, glm::vec2 size, glm::vec3 color,
-                      float angle = 0, const glm::mat3 &parent = glm::mat3(1));
-        void DrawRect(const Rect &rect, glm::vec3 color);
-        void DrawOutline(const Rect &rect, glm::vec3 color, float thickness);
+        // All the meshes of the scene: one for each shape + color combination (the color is in the vertices)
+        void CreateMeshes();
 
-        void DrawPlayer(const Player &p, glm::vec3 boardColor);
+        // Drawing: each part of the scene builds its modelMatrix and calls RenderMesh2D (as in lab3)
+        void DrawPlayer(const Player &p);
         void DrawCard(const Card &card, float scale = 1);               // front or back, with flip
-        void DrawLaneMarker(Lane lane, glm::vec2 center, glm::vec3 color, const glm::mat3 &parent = glm::mat3(1));
-        void DrawCardFront(const Card &card, const glm::mat3 &model);   // model = card's transform
-        void DrawCardBack(const glm::mat3 &model);
+        void DrawLaneMarker(int lane, glm::vec2 center, const std::string &mesh, glm::mat3 baseMatrix);
+        void DrawCardFront(const Card &card, glm::mat3 cardMatrix);     // cardMatrix = the card's transform
+        void DrawCardBack(glm::mat3 cardMatrix);
         void DrawDeck(glm::vec2 center, int cardsLeft);
         void DrawLives(glm::vec2 start, int hp, int shield);
         void DrawCrystals(glm::vec2 start, int crystals);
         void DrawLeader(const Leader &leader, glm::vec2 center, float size, bool highlight);
         void DrawLeaderMenu();
-        void DrawTextCentered(const std::string &text, glm::vec2 center, glm::vec3 color);
         // result: 1 = player won, -1 = player lost, 0 = draw
         void DrawResultBanner(int result, glm::vec2 size);
 
      private:
+        // Sizes and game settings, set in Init()
         // Logical scene size: the camera always shows this, whatever the window size
-        static constexpr float kSceneWidth = 1280;
-        static constexpr float kSceneHeight = 720;
+        float sceneWidth, sceneHeight;
 
-        static constexpr float kCardWidth = 70;
-        static constexpr float kCardHeight = 100;
-        static constexpr float kCardSpacing = 15;
-        static constexpr float kBoardScale = 0.65f;     // cards on the board are drawn smaller
+        float cardWidth, cardHeight;
+        float cardSpacing;
+        float boardScale;       // cards on the board are drawn smaller
 
         // Board: centered on the middle line, each half has 3 lanes
-        static constexpr float kBoardCenterX = 630;
-        static constexpr float kBoardWidth = 760;
-        static constexpr float kMiddleY = 360;
-        static constexpr float kLaneHeight = 76;
+        float boardCenterX;
+        float boardWidth;
+        float middleY;
+        float laneHeight;
 
-        static constexpr int kMaxHP = 15;
-        static constexpr int kCrystals = 2;
-        static constexpr float kRoundPause = 2.0f;      // seconds the round result stays on screen
-        static constexpr int kDeckSize = 20;
-        static constexpr int kHandSize = 10;            // cards dealt to each player at the start
-        static constexpr float kDealInterval = 0.15f;   // seconds between two dealt cards
-        static constexpr float kEnemyDelay = 0.5f;      // seconds before the enemy plays
+        int maxHP;
+        int maxCrystals;
+        float roundPause;       // seconds the round result stays on screen
+        int deckSize;
+        int handSize;           // cards dealt to each player at the start
+        float dealInterval;     // seconds between two dealt cards
+        float enemyDelay;       // seconds before the enemy plays
+
+        glm::mat3 modelMatrix;  // transform of the mesh being drawn
 
         Player player;
         Player enemy;
@@ -106,14 +110,12 @@ namespace m1
         glm::vec2 mouseWorld;
         int draggedIndex;   // index in player.hand of the card being dragged, -1 if none
 
-        Phase phase;
+        int phase;          // PHASE_...
         float timer;        // time until the next action (next dealt card / enemy move)
         int cardsToDeal;    // cards left to deal (both players)
         int roundResult;    // result of the last round, shown during RoundOver
 
         std::vector<Leader> leaders;    // the choices in the menu
         int selectedLeader;             // index in `leaders`, -1 if none
-
-        std::unique_ptr<gfxc::TextRenderer> textRenderer;
     };
 }   // namespace m1

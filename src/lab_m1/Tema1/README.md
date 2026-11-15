@@ -7,8 +7,9 @@
 - Orthographic camera over a fixed logical space of 1280×720 (origin bottom-left), independent of the window size
 - `transform2D.h` and `object2D` copied from lab3, in the `tema1::` namespace (avoids link conflicts with lab3)
 - Shapes: square, circle, ring, triangle, diamond, star, cross
-  - all white, size 1, centered at the origin
-  - size/position/rotation come from the model matrix, color from the `Color` shader
+  - size 1, centered at the origin, color stored in the vertices (drawn with the `VertexColor` shader, as in the labs)
+  - one mesh for each shape + color combination, all created in `Tema1::CreateMeshes` (e.g. `card_damage`, `life_lost`, `star_blue`)
+  - size/position/rotation come from the model matrix
 - Depth test disabled: draw order gives the layering (what is drawn last is on top)
 
 ### 2. Game board
@@ -46,7 +47,7 @@
 - The `R` key starts a new game
 
 ### 7. Enemy
-- Turn phases: `Dealing` → `PlayerTurn` → `EnemyTurn` → `Reveal` → `PlayerTurn` ...
+- Turn phases (`int phase`, `PHASE_...` constants): `PHASE_DEALING` → `PHASE_PLAYER_TURN` → `PHASE_ENEMY_TURN` → `PHASE_REVEAL` → `PHASE_PLAYER_TURN` ...
 - After the player places a card, the enemy picks a random card from its hand and puts it on its board
 - The card arrives face down, then flips
 - Flip = rotation around the vertical axis: scaling on X by `|cos(flip·π)|`
@@ -54,7 +55,7 @@
 - Card details are drawn relative to the card's center, then the card's matrix places them (hierarchical transforms)
 
 ### 8. Card effects
-- `Rules` class: after both cards are on the board, the effects of all board cards (new and older) are applied
+- `Tema1::ResolveTurn`: after both cards are on the board, the effects of all board cards (new and older) are applied
 - Fixed order by type: Scorch - Spy - Clear Weather - Frost Weather - War Horn - Shield - Damage - Heal (player first, then enemy)
 - Permanent cards:
   - Damage: opponent loses V life (the shield absorbs damage first)
@@ -65,7 +66,7 @@
   - Spy: steals a random card from the opponent's hand (it slides to the new hand)
   - Clear Weather: removes all Frost cards from the board
   - Frost Weather: all the opponent's board cards lose 1
-  - War Horn: doubles the next card played by the same player
+  - War Horn: doubles the next card played by the same player; its V decreases only in the turns when it doubles a card (in the turn it is placed it just waits), so a War Horn with V doubles the next V cards
 - Cards that reach value 0 are destroyed; the rows rearrange with animation
 - `Player` handles its own state: `PlayCard`, `TakeDamage`, `Heal`, `EndTurn`
 
@@ -81,7 +82,7 @@
 ### 10. Lanes
 - Each board half has 3 lanes: melee (next to the middle line), ranged, siege
 - Board made taller; cards on the board are drawn at 0.65 scale (extra `Scale` in the card's matrix)
-- Each card has a `lane` attribute: permanent cards get a random lane, temporary cards fit any lane (`Lane::Any`)
+- Each card has a `lane` attribute: permanent cards get a random lane, temporary cards fit any lane (`LANE_ANY`)
 - Lane marker: 1 / 2 / 3 dots (melee / ranged / siege), drawn in the card's top-right corner and at the start of each lane
 - While dragging, the lanes where the card can go are highlighted
 - Dropping on a lane the card doesn't belong to sends it back to the hand
@@ -118,8 +119,7 @@
 - `Leader` class: shape, color, ability type, `used` flag
 - 5 leaders with different shapes: Foltest (circle), Emhyr (diamond), Eredin (triangle), Francesca (star), Radovid (hexagon)
   - hexagon added by generalizing the circle mesh into `CreatePolygon(sides)` (circle = 40 sides)
-- Before the game, a menu shows the leaders side by side (`LeaderSelect` phase), with their names below
-  - names drawn with the framework's `TextRenderer` (font loaded at 2x and drawn at 0.5, sharp on HiDPI screens)
+- Before the game, a menu shows the leaders side by side (`PHASE_LEADER_SELECT`)
 - Click selects a leader: it is drawn again behind itself, in light blue, scaled by 1.15 (highlight)
 - A second click on the selected leader starts the game; the enemy gets a random leader
 - During the game each leader is drawn on its player's half, next to the crystals (gray once its ability is used)
@@ -129,7 +129,7 @@
 - Click on your leader during your turn: its ability is applied right away, the leader turns gray (once per game); the turn continues
 - The enemy uses its ability once, at a random moment (25% chance after each turn)
 - Abilities are used only between turns (no card of the current turn on the board), so destroyed cards can be cleaned up right away
-- `Rules::UseLeaderAbility`:
+- `Tema1::UseLeaderAbility`:
   - Foltest: destroys all weather cards
   - Emhyr: turns 3 hidden cards of the opponent's hand face up (flip animation)
   - Eredin: doubles your melee cards

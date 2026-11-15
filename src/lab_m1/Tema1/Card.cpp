@@ -1,48 +1,38 @@
 #include "lab_m1/Tema1/Card.h"
 
-#include <cstdlib>
-
 using namespace m1;
 
 
-Card::Card(CardType type, int value, Lane lane)
-    : type(type), value(value), baseValue(value), lane(lane), placedLane(lane),
-      position(0), target(0), faceUp(true), flip(1)
+Card::Card(int type, int value, int lane)
 {
+    this->type = type;
+    this->value = value;
+    baseValue = value;
+    this->lane = lane;
+    placedLane = lane;
+
+    position = glm::vec2(0);
+    target = glm::vec2(0);
+    faceUp = true;
+    flip = 1;
 }
 
 
-Card Card::Random()
+bool Card::CanGoOn(int l) const
 {
-    CardType type = (CardType)(rand() % (int)CardType::Count);
-    int value = 1 + rand() % 4;
-
-    // Permanent cards belong to one random lane, weather cards to their own lane,
-    // the other temporary cards can go anywhere
-    Card card(type, value, Lane::Any);
-    switch (type) {
-    case CardType::FrostWeather: card.lane = Lane::Melee;  break;
-    case CardType::Fog:          card.lane = Lane::Ranged; break;
-    case CardType::Rain:         card.lane = Lane::Siege;  break;
-    default:
-        if (!card.IsTemporary()) {
-            card.lane = (Lane)(rand() % kLaneCount);
-        }
-        break;
-    }
-    return card;
+    return lane == LANE_ANY || lane == l;
 }
 
 
 bool Card::IsWeather() const
 {
-    return type == CardType::FrostWeather || type == CardType::Fog || type == CardType::Rain;
+    return type == CARD_FROST_WEATHER || type == CARD_FOG || type == CARD_RAIN;
 }
 
 
 bool Card::IsTemporary() const
 {
-    return type != CardType::Damage && type != CardType::Heal && type != CardType::Shield;
+    return type != CARD_DAMAGE && type != CARD_HEAL && type != CARD_SHIELD;
 }
 
 
@@ -60,53 +50,54 @@ void Card::Animate(float deltaTime)
 }
 
 
-glm::vec3 Card::GetColor() const
+std::string Card::GetBodyMesh() const
 {
     switch (type) {
-    case CardType::Damage:       return glm::vec3(0.80f, 0.22f, 0.22f);
-    case CardType::Heal:         return glm::vec3(0.25f, 0.65f, 0.35f);
-    case CardType::Shield:       return glm::vec3(0.22f, 0.42f, 0.80f);
-    case CardType::Spy:          return glm::vec3(0.08f, 0.08f, 0.08f);
-    case CardType::FrostWeather: return glm::vec3(0.92f, 0.94f, 0.97f);
-    case CardType::ClearWeather: return glm::vec3(0.90f, 0.75f, 0.20f);
-    case CardType::WarHorn:      return glm::vec3(0.95f, 0.50f, 0.15f);
-    case CardType::Scorch:       return glm::vec3(0.50f, 0.25f, 0.70f);
-    case CardType::Fog:          return glm::vec3(0.55f, 0.58f, 0.62f);
-    case CardType::Rain:         return glm::vec3(0.20f, 0.55f, 0.58f);
-    case CardType::Medic:        return glm::vec3(0.90f, 0.50f, 0.65f);
-    case CardType::Decoy:        return glm::vec3(0.50f, 0.36f, 0.22f);
-    default:                     return glm::vec3(1, 0, 1);
+    case CARD_DAMAGE:           return "card_damage";
+    case CARD_HEAL:             return "card_heal";
+    case CARD_SHIELD:           return "card_shield";
+    case CARD_SPY:              return "card_spy";
+    case CARD_FROST_WEATHER:    return "card_frost_weather";
+    case CARD_CLEAR_WEATHER:    return "card_clear_weather";
+    case CARD_WAR_HORN:         return "card_war_horn";
+    case CARD_SCORCH:           return "card_scorch";
+    case CARD_FOG:              return "card_fog";
+    case CARD_RAIN:             return "card_rain";
+    case CARD_MEDIC:            return "card_medic";
+    case CARD_DECOY:            return "card_decoy";
+    default:                    return "card_border";   // unknown type
     }
 }
 
 
-glm::vec3 Card::GetSymbolColor() const
+std::string Card::GetDetailColor() const
 {
+    // Light cards (Frost, Clear Weather) and the black Spy card need other colors to stay readable
     switch (type) {
-    case CardType::FrostWeather: return glm::vec3(0.35f, 0.65f, 0.95f);
-    case CardType::ClearWeather: return glm::vec3(0.45f, 0.30f, 0.05f);
-    case CardType::Spy:          return glm::vec3(0.75f, 0.75f, 0.75f);
-    default:                     return glm::vec3(1.0f, 0.95f, 0.9f);
+    case CARD_FROST_WEATHER:    return "blue";
+    case CARD_CLEAR_WEATHER:    return "brown";
+    case CARD_SPY:              return "gray";
+    default:                    return "cream";
     }
 }
 
 
-std::string Card::GetSymbolMesh() const
+std::string Card::GetSymbolShape() const
 {
     switch (type) {
-    case CardType::Damage:       return "triangle";
-    case CardType::Heal:         return "cross";
-    case CardType::Shield:       return "circle";
-    case CardType::Spy:          return "diamond";
-    case CardType::FrostWeather: return "star";     // all weather cards: star, different colors
-    case CardType::Fog:          return "star";
-    case CardType::Rain:         return "star";
-    case CardType::Medic:        return "cross";
-    case CardType::Decoy:        return "square";
-    case CardType::ClearWeather: return "ring";
-    case CardType::WarHorn:      return "triangle";
-    case CardType::Scorch:       return "cross";
-    default:                     return "square";
+    case CARD_DAMAGE:           return "triangle";
+    case CARD_HEAL:             return "cross";
+    case CARD_SHIELD:           return "circle";
+    case CARD_SPY:              return "diamond";
+    case CARD_FROST_WEATHER:    return "star";     // all weather cards: star, different colors
+    case CARD_FOG:              return "star";
+    case CARD_RAIN:             return "star";
+    case CARD_MEDIC:            return "cross";
+    case CARD_DECOY:            return "square";
+    case CARD_CLEAR_WEATHER:    return "ring";
+    case CARD_WAR_HORN:         return "triangle";
+    case CARD_SCORCH:           return "cross";
+    default:                    return "square";
     }
 }
 
@@ -115,8 +106,8 @@ float Card::GetSymbolAngle() const
 {
     // Same mesh as a permanent card, but rotated so it stays distinct
     switch (type) {
-    case CardType::WarHorn: return glm::pi<float>();           // upside-down triangle
-    case CardType::Scorch:  return glm::quarter_pi<float>();   // X
+    case CARD_WAR_HORN:     return glm::pi<float>();           // upside-down triangle
+    case CARD_SCORCH:       return glm::quarter_pi<float>();   // X
     default:                return 0;
     }
 }

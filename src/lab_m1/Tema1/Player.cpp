@@ -6,9 +6,18 @@ using namespace m1;
 
 
 Player::Player()
-    : hp(0), shield(0), crystals(0), hiddenHand(false), playedIndex(-1), playedCancelled(false),
-      deckPos(0), livesPos(0), crystalsPos(0), leaderPos(0)
 {
+    hp = 0;
+    shield = 0;
+    crystals = 0;
+    hiddenHand = false;
+    playedIndex = -1;
+    playedCancelled = false;
+
+    deckPos = glm::vec2(0);
+    livesPos = glm::vec2(0);
+    crystalsPos = glm::vec2(0);
+    leaderPos = glm::vec2(0);
 }
 
 
@@ -24,7 +33,7 @@ void Player::DrawFromDeck()
 }
 
 
-void Player::PlayCard(int handIndex, Lane lane)
+void Player::PlayCard(int handIndex, int lane)
 {
     Card card = hand[handIndex];
     card.faceUp = true;     // enemy cards flip once they reach the board
@@ -72,13 +81,13 @@ void Player::ReviveRandom()
 
 bool Player::CanPlay(const Card &card) const
 {
-    return card.type != CardType::Decoy || !row.empty();
+    return card.type != CARD_DECOY || !row.empty();
 }
 
 
-bool Player::CanPlayOn(const Card &card, Lane lane) const
+bool Player::CanPlayOn(const Card &card, int lane) const
 {
-    if (card.type != CardType::Decoy) {
+    if (card.type != CARD_DECOY) {
         return card.CanGoOn(lane);
     }
     for (const Card &c : row) {
@@ -114,7 +123,7 @@ int Player::RowCardAt(glm::vec2 p, glm::vec2 cardSize) const
 
 int Player::LaneAt(glm::vec2 p) const
 {
-    for (int i = 0; i < kLaneCount; i++) {
+    for (int i = 0; i < LANE_COUNT; i++) {
         if (lanes[i].Contains(p)) {
             return i;
         }
@@ -137,6 +146,16 @@ void Player::Heal(int amount, int maxHP)
 }
 
 
+void Player::ClearWeather()
+{
+    for (Card &c : row) {
+        if (c.IsWeather()) {
+            c.value = 0;
+        }
+    }
+}
+
+
 void Player::EndTurn()
 {
     for (size_t i = 0; i < row.size(); ) {
@@ -154,7 +173,9 @@ void Player::EndTurn()
 
 void Player::NewRound(int maxHP)
 {
-    graveyard.insert(graveyard.end(), row.begin(), row.end());
+    for (const Card &c : row) {
+        graveyard.push_back(c);
+    }
     row.clear();
     EndTurn();
     hp = maxHP;

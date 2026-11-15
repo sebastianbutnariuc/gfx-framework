@@ -11,8 +11,17 @@ namespace m1
         glm::vec2 center;
         glm::vec2 size;
 
-        Rect() : center(0), size(0) {}
-        Rect(glm::vec2 center, glm::vec2 size) : center(center), size(size) {}
+        Rect()
+        {
+            center = glm::vec2(0);
+            size = glm::vec2(0);
+        }
+
+        Rect(glm::vec2 center, glm::vec2 size)
+        {
+            this->center = center;
+            this->size = size;
+        }
 
         bool Contains(glm::vec2 p) const
         {
